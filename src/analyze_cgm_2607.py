@@ -23,7 +23,7 @@ import numpy as np
 
 # 1. Load the Data
 # Adjust filenames if they differ locally
-food_df = pd.read_excel('/mnt/c/Users/weich/Dropbox/temp/others/health_data/CGM_stelo_data/Food_track_202607.xlsx')
+food_df = pd.read_excel('/mnt/c/Users/weich/Dropbox/temp/others/health_data/CGM_stelo_data/data/Food_track_202607.xlsx')
 cgm_df = pd.read_csv('/mnt/c/Users/weich/Downloads/Clarity_Export_Chen_Wei_2026-07-16_162558.csv') # Skip patient info rows
 
 # 2. Clean and Parse Food Log
@@ -84,7 +84,7 @@ for idx, meal in food_df.iterrows():
 output_df = pd.DataFrame(results)
 # output_df
 # Optional: Save to a new CSV file
-# output_df.to_csv('Glucose_Meal_Analysis.csv', index=False)
+output_df.to_csv('/mnt/c/Users/weich/Downloads/Glucose_Meal_Analysis.csv', index=False)
 
 # %%
 import matplotlib.pyplot as plt
