@@ -1,41 +1,70 @@
 
 # %%
-from bs4 import BeautifulSoup
-import tqdm, sys, glob, os, time, json
-import json
-import numpy as np, pandas as pd
+import os
+import re
+from pathlib import Path
 
-# %%
-###############################################
-
-# %%
-# !pip install matplotlib
-
-# %%
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
+from matplotlib import font_manager
+from matplotlib.font_manager import FontProperties
+
+
+def normalize_meal_time(value):
+    if pd.isna(value):
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    if ":" in s:
+        parts = s.split(":")
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            return f"{int(parts[0]):02d}:{int(parts[1]):02d}"
+        return s
+    digits = re.sub(r"\D", "", s)
+    if len(digits) == 3:
+        return f"0{digits[0]}:{digits[1:]}"
+    if len(digits) == 4:
+        return f"{digits[:2]}:{digits[2:]}"
+    if len(digits) == 2:
+        return f"{digits}:00"
+    return s
+
+
+def default_data_paths():
+    base_dir = Path(__file__).resolve().parent
+    food_path = base_dir.parent / "data" / "Food_track_202607.xlsx"
+    cgm_path = Path("/mnt/c/Users/weich/Downloads/Clarity_Export_Chen_Wei_2026-07-16_162558.csv")
+    return food_path, cgm_path
+
+
+def default_output_path():
+    downloads = Path("/mnt/c/Users/weich/Downloads")
+    if not downloads.exists():
+        downloads = Path("/mnt/c/Users/weich")
+    return downloads / "Glucose_Meal_Analysis.csv"
 
 
 # %%
-import pandas as pd
-import numpy as np
-
 # 1. Load the Data
-# Adjust filenames if they differ locally
-food_df = pd.read_excel('/mnt/c/Users/weich/Dropbox/temp/others/health_data/CGM_stelo_data/data/Food_track_202607.xlsx')
-cgm_df = pd.read_csv('/mnt/c/Users/weich/Downloads/Clarity_Export_Chen_Wei_2026-07-16_162558.csv') # Skip patient info rows
+food_path, cgm_path = default_data_paths()
+food_df = pd.read_excel(food_path)
+cgm_df = pd.read_csv(cgm_path)  # Skip patient info rows
 
 # 2. Clean and Parse Food Log
 # Forward fill the missing dates for meals on the same day
 food_df['Date'] = food_df['Date'].ffill()
-# Combine Date and Time into a single datetime column
-food_df['Time'] = food_df['Time'].astype(str).str.zfill(4) # Ensure HHMM format
-food_df['Time'] = food_df['Time'].str[:2] + ':' + food_df['Time'].str[2:]
-food_df['Meal_Timestamp'] = pd.to_datetime(food_df['Date'].astype(str) + ' ' + food_df['Time'])
+# Normalize meal times and combine into a single datetime column
+food_df['Time'] = food_df['Time'].apply(normalize_meal_time)
+food_df['Meal_Timestamp'] = pd.to_datetime(
+    food_df['Date'].astype(str) + ' ' + food_df['Time'],
+    errors='coerce'
+)
 
-# Filter out rows that don't have a valid meal description
-food_df = food_df.dropna(subset=['Food']).reset_index(drop=True)
+# Filter out rows that don't have a valid meal description or timestamp
+food_df = food_df.dropna(subset=['Food', 'Meal_Timestamp']).reset_index(drop=True)
 
 # 3. Clean and Parse CGM Data
 cgm_df = cgm_df[cgm_df['Event Type'] == 'EGV'].copy() # Keep only Estimated Glucose Values
@@ -82,14 +111,10 @@ for idx, meal in food_df.iterrows():
 
 # 5. Output Results
 output_df = pd.DataFrame(results)
-# output_df
-# Optional: Save to a new CSV file
-output_df.to_csv('/mnt/c/Users/weich/Downloads/Glucose_Meal_Analysis.csv', index=False)
+output_path = default_output_path()
+output_df.to_csv(output_path, index=False)
 
 # %%
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
 from matplotlib import font_manager
 from matplotlib.font_manager import FontProperties
 
@@ -126,31 +151,56 @@ font_prop = setup_cjk_font()
 
 # Set a clean style for the plot
 sns.set_theme(style="whitegrid")
-font_prop = setup_cjk_font()  # seaborn theme can reset font settings
 
-plt.figure(figsize=(12, 8))
+plot_df = output_df.dropna(subset=['2h Peak Increase', '4h Avg Increase']).copy()
+if plot_df.empty:
+    print("No valid points available for plotting.")
+else:
+    plt.figure(figsize=(12, 8))
 
-# 1. Generate the scatter plot
-sns.scatterplot(
-    data=output_df, 
-    x='4h Avg Increase', 
-    y='2h Peak Increase',
-    alpha=0.6,
-    s=100, 
-    color='teal',
-    edgecolor='w',
-    linewidth=1
-)
+    # 1. Generate the scatter plot
+    sns.scatterplot(
+        data=plot_df, 
+        x='4h Avg Increase', 
+        y='2h Peak Increase',
+        alpha=0.6,
+        s=100, 
+        color='teal',
+        edgecolor='w',
+        linewidth=1
+    )
 
-# 2. Add the 1:1 diagonal reference line
-max_val = max(output_df['4h Avg Increase'].max(), output_df['2h Peak Increase'].max())
-min_val = min(output_df['4h Avg Increase'].min(), output_df['2h Peak Increase'].min())
-plt.plot([min_val, max_val], [min_val, max_val], color='gray', linestyle='--', alpha=0.5, label='1:1 Reference Line')
+    # 3. Annotate each point with the Food name (handles both English and Chinese text)
+    for idx, row in plot_df.iterrows():
+        if pd.isna(row['4h Avg Increase']) or pd.isna(row['2h Peak Increase']):
+            continue
 
-# 3. Annotate each point with the Food name (handles both English and Chinese text)
-for idx, row in output_df.iterrows():
-    if pd.isna(row['4h Avg Increase']) or pd.isna(row['2h Peak Increase']):
-        continue
+        food_label = str(row['Food'])
+        if len(food_label) > 20:
+            food_label = food_label[:17] + "..."
+
+        plt.annotate(
+            food_label,
+            xy=(row['4h Avg Increase'], row['2h Peak Increase']),
+            xytext=(5, 5),
+            textcoords='offset points',
+            fontsize=9,
+            alpha=0.8,
+            fontproperties=font_prop,
+            weight='bold' if row['2h Peak Increase'] > 30 else 'normal',
+        )
+
+    # Labels and Styling
+    plt.title('Glucose Response Annotated by Food Item', fontsize=14, pad=15)
+    plt.xlabel('4-Hour Average Increase (mg/dL)', fontsize=12)
+    plt.ylabel('2-Hour Peak Increase (mg/dL)', fontsize=12)
+    plt.legend()
+
+    plt.tight_layout()
+
+    # Save the figure to the Downloads folder
+    fig_path = output_path.with_name('glucose_response_plot.png')
+    plt.savefig(fig_path, dpi=300, bbox_inches='tight')
         
     food_label = str(row['Food'])
     if len(food_label) > 20:
@@ -176,9 +226,7 @@ plt.legend()
 plt.tight_layout()
 
 # Save the figure to the Downloads folder
-import os
-downloads_path = os.path.expanduser('/mnt/c/Users/weich/Downloads')
-fig_path = os.path.join(downloads_path, 'glucose_response_plot.png')
+fig_path = output_path.with_name('glucose_response_plot.png')
 plt.savefig(fig_path, dpi=300, bbox_inches='tight')
 
 

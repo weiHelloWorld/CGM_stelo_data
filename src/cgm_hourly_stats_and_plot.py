@@ -12,9 +12,7 @@ def _compute_hourly_stats(file_path):
     df_egv['Hour'] = df_egv['Timestamp'].dt.hour
     return df_egv.groupby('Hour')['Glucose Value (mg/dL)'].agg(
         mean='mean',
-        median='median',
-        quantile_25=lambda x: x.quantile(0.25),
-        quantile_75=lambda x: x.quantile(0.75)
+        std='std'
     ).reset_index()
 
 
@@ -36,22 +34,13 @@ def cgm_hourly_stats_and_plot(file_path_list):
             linewidth=2.5,
             label=f'{label} Mean'
         )
-        ax.plot(
-            hourly_stats['Hour'],
-            hourly_stats['median'],
-            color=color,
-            linestyle='--',
-            linewidth=1.5,
-            alpha=0.8,
-            label=f'{label} Median'
-        )
         ax.fill_between(
             hourly_stats['Hour'],
-            hourly_stats['quantile_25'],
-            hourly_stats['quantile_75'],
+            hourly_stats['mean'] - hourly_stats['std'],
+            hourly_stats['mean'] + hourly_stats['std'],
             color=color,
             alpha=0.15,
-            label=f'{label} IQR'
+            label=f'{label} ±1 SD'
         )
 
     ax.set_title('Hourly Glucose Trend Over All Days', fontsize=14, fontweight='bold', pad=15)
