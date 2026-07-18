@@ -40,7 +40,7 @@ def cgm_hourly_stats_and_plot(file_path_list):
             hourly_stats['mean'] + hourly_stats['std'],
             color=color,
             alpha=0.15,
-            label=f'{label} ±1 SD'
+            # label=f'{label} ±1 SD'
         )
 
     ax.set_title('Hourly Glucose Trend Over All Days', fontsize=14, fontweight='bold', pad=15)
@@ -58,5 +58,5 @@ def cgm_hourly_stats_and_plot(file_path_list):
 if __name__ == '__main__':
     cgm_hourly_stats_and_plot([
         "./data/Clarity_Export_Chen_Wei_2026-07-03_145534.csv",
-        "/mnt/c/Users/weich/Downloads/Clarity_Export_Chen_Wei_2026-07-16_162558.csv",
+        "/mnt/c/Users/weich/Downloads/Clarity_Export_Chen_Wei_2026-07-18_163241.csv",
     ])
