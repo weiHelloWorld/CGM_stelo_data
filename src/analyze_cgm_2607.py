@@ -11,6 +11,7 @@ import seaborn as sns
 from matplotlib import font_manager
 from matplotlib.font_manager import FontProperties
 
+CGM_DATA_CSV_FILE_2607 = "/mnt/c/Users/weich/Downloads/Clarity_Export_Chen_Wei_2026-07-23_021431.csv"
 
 def normalize_meal_time(value):
     if pd.isna(value):
@@ -36,7 +37,7 @@ def normalize_meal_time(value):
 def default_data_paths():
     base_dir = Path(__file__).resolve().parent
     food_path = base_dir.parent / "data" / "Food_track_202607.xlsx"
-    cgm_path = Path("/mnt/c/Users/weich/Downloads/Clarity_Export_Chen_Wei_2026-07-16_162558.csv")
+    cgm_path = Path(CGM_DATA_CSV_FILE_2607)
     return food_path, cgm_path
 
 

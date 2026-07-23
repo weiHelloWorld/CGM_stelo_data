@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
-
+from analyze_cgm_2607 import CGM_DATA_CSV_FILE_2607
 
 def _compute_hourly_stats(file_path):
     df = pd.read_csv(file_path)
@@ -58,5 +58,5 @@ def cgm_hourly_stats_and_plot(file_path_list):
 if __name__ == '__main__':
     cgm_hourly_stats_and_plot([
         "./data/Clarity_Export_Chen_Wei_2026-07-03_145534.csv",
-        "/mnt/c/Users/weich/Downloads/Clarity_Export_Chen_Wei_2026-07-18_163241.csv",
+        CGM_DATA_CSV_FILE_2607
     ])
