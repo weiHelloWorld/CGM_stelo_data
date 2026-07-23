@@ -59,15 +59,7 @@ def main(cgm_csv_file, food_csv_file):
     cgm_df = pd.read_csv(cgm_csv_file)
 
     # 2. Clean and Parse Food Log
-    if 'Meal_Timestamp' not in food_df.columns:
-        food_df["Date"] = food_df["Date"].ffill()
-        food_df["Time"] = food_df["Time"].apply(normalize_meal_time)
-        food_df["Meal_Timestamp"] = pd.to_datetime(
-            food_df["Date"].astype(str) + " " + food_df["Time"],
-            errors="coerce",
-        )
-    else:
-        food_df["Meal_Timestamp"] = pd.to_datetime(food_df["Meal_Timestamp"])
+    food_df["Meal_Timestamp"] = pd.to_datetime(food_df["Meal_Timestamp"])
     food_df = food_df.dropna(subset=["Food", "Meal_Timestamp"]).reset_index(drop=True)
     food_df = food_df.sort_values("Meal_Timestamp").reset_index(drop=True)
     food_df["Mins Since Prev Meal"] = (
@@ -109,18 +101,15 @@ def main(cgm_csv_file, food_csv_file):
 
         peak_2h_delta = (cgm_2h["Glucose"].max() - pre_glucose) if not cgm_2h.empty else np.nan
         avg_4h_delta = (cgm_4h["Glucose"].mean() - pre_glucose) if not cgm_4h.empty else np.nan
-
-        results.append(
+        i_res = meal.to_dict()
+        i_res.update(
             {
-                "Meal_Timestamp": meal["Meal_Timestamp"],
-                "Food": meal["Food"],
-                "Mins Since Prev Meal": meal["Mins Since Prev Meal"],
-                "Mins Until Next Meal": meal["Mins Until Next Meal"],
                 "Pre-Meal Glucose": pre_glucose,
                 "2h Peak Increase": peak_2h_delta,
                 "4h Avg Increase": avg_4h_delta,
             }
         )
+        results.append(i_res)
 
     # 5. Output Results
     output_df = pd.DataFrame(results)
