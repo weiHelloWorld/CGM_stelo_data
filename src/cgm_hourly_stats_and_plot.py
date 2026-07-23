@@ -55,13 +55,13 @@ def parse_args():
     return parser.parse_args()
 
 
-def _compute_hourly_stats(df, date_start: str, date_end: str, unit: str):
+def _compute_hourly_stats(df, date_start: str, date_end: str, unit: str, offset_mgdL: float):
     df_egv = df[df['Event Type'] == 'EGV'].copy()
     # import pdb; pdb.set_trace()
     tmp_tt = pd.to_datetime(df_egv['Timestamp (YYYY-MM-DDThh:mm:ss)'])
     df_egv = df_egv[(tmp_tt >= pd.to_datetime(date_start)) & (tmp_tt <= pd.to_datetime(date_end))]
     print(f'Range of dates in df_egv: {df_egv["Timestamp (YYYY-MM-DDThh:mm:ss)"].min()} to {df_egv["Timestamp (YYYY-MM-DDThh:mm:ss)"].max()}')
-    df_egv['Glucose Value (mg/dL)'] = pd.to_numeric(df_egv['Glucose Value (mg/dL)'], errors='coerce')
+    df_egv['Glucose Value (mg/dL)'] = pd.to_numeric(df_egv['Glucose Value (mg/dL)'], errors='coerce') + offset_mgdL
     df_egv = df_egv.dropna(subset=['Glucose Value (mg/dL)', 'Timestamp (YYYY-MM-DDThh:mm:ss)'])
     if unit == 'mmol/L':
         df_egv['Glucose'] = df_egv['Glucose Value (mg/dL)'] * MG_DL_TO_MMOL_L
@@ -75,13 +75,18 @@ def _compute_hourly_stats(df, date_start: str, date_end: str, unit: str):
     ).reset_index()
 
 
-def cgm_hourly_stats_and_plot(df: pd.DataFrame, date_start_end_list: list[tuple[str, str]], unit: str = 'mmol/L'):
+def cgm_hourly_stats_and_plot(df: pd.DataFrame, date_start_end_list: list[tuple[str, str]], unit: str, offset_mgdL_list: list[float]):
     fig, ax = plt.subplots(figsize=(10, 6))
     colors = plt.cm.tab10.colors
     stems = []
+    all_stats = []
 
     for i, (date_start, date_end) in enumerate(date_start_end_list):
-        hourly_stats = _compute_hourly_stats(df, date_start=date_start, date_end=date_end, unit=unit)
+        hourly_stats = _compute_hourly_stats(df, date_start=date_start, date_end=date_end, unit=unit, offset_mgdL=offset_mgdL_list[i])
+        hourly_stats = hourly_stats.copy()
+        hourly_stats['Date Range'] = f'{date_start} to {date_end}'
+        all_stats.append(hourly_stats)
+
         color = colors[i % len(colors)]
         label = f'{date_start} to {date_end}'
         stems.append(label)
@@ -111,6 +116,10 @@ def cgm_hourly_stats_and_plot(df: pd.DataFrame, date_start_end_list: list[tuple[
     ax.legend(loc='upper right', fontsize=10)
 
     output_name = f'hourly_glucose_trend_{"_".join(stems)}.png'
+    csv_name = f'hourly_glucose_trend_{"_".join(stems)}_{unit.replace('/', '-')}.csv'
+    if all_stats:
+        pd.concat(all_stats, ignore_index=True).to_csv(f'/mnt/c/Users/weich/Downloads/{csv_name}', index=False)
+
     plt.savefig(f'/mnt/c/Users/weich/Downloads/{output_name}', dpi=300, bbox_inches='tight')
 
 
@@ -123,4 +132,5 @@ if __name__ == '__main__':
             ('2026-06-16', '2026-07-01'), 
             ('2026-07-07', '2026-07-22')],
         unit=args.unit,
+        offset_mgdL_list=[-12, -7]   # offset based on fingerstick measurements, to align with CGM readings
     )
