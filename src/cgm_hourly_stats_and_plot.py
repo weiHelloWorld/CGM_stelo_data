@@ -6,9 +6,8 @@ from matplotlib import font_manager
 from matplotlib.font_manager import FontProperties
 from pathlib import Path
 
-MG_DL_TO_MMOL_L = 1 / 18.0182
+from process_raw_cgm_csv import MG_DL_TO_MMOL_L, PERIOD_LIST, PROCESSED_CGM_CSV_FILE
 
-CGM_DATA_CSV_FILE_ALL = './data/Clarity_Export_Chen_Wei_2026-07-23_185008.csv'
 
 
 def setup_cjk_font():
@@ -43,7 +42,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Plot CGM hourly glucose trends.')
     parser.add_argument(
         '--cgm',
-        default=CGM_DATA_CSV_FILE_ALL,
+        default=PROCESSED_CGM_CSV_FILE,
         help='Path to CGM export CSV file.',
     )
     parser.add_argument(
@@ -55,13 +54,13 @@ def parse_args():
     return parser.parse_args()
 
 
-def _compute_hourly_stats(df, date_start: str, date_end: str, unit: str, offset_mgdL: float):
+def _compute_hourly_stats(df, date_start: str, date_end: str, unit: str):
     df_egv = df[df['Event Type'] == 'EGV'].copy()
     # import pdb; pdb.set_trace()
     df_egv['Timestamp'] = pd.to_datetime(df_egv['Timestamp (YYYY-MM-DDThh:mm:ss)'])
     df_egv = df_egv[(df_egv['Timestamp'] >= pd.to_datetime(date_start)) & (df_egv['Timestamp'] <= pd.to_datetime(date_end))]
     print(f'Range of dates in df_egv: {df_egv["Timestamp"].min()} to {df_egv["Timestamp"].max()}')
-    df_egv['Glucose Value (mg/dL)'] = pd.to_numeric(df_egv['Glucose Value (mg/dL)'], errors='coerce') + offset_mgdL
+    df_egv['Glucose Value (mg/dL)'] = pd.to_numeric(df_egv['Glucose Value (mg/dL)'], errors='coerce')
     df_egv = df_egv.dropna(subset=['Glucose Value (mg/dL)', 'Timestamp'])
     df_egv['Glucose_mmol_L'] = df_egv['Glucose Value (mg/dL)'] * MG_DL_TO_MMOL_L
     if unit == 'mmol/L':
@@ -90,14 +89,14 @@ def _compute_hourly_stats(df, date_start: str, date_end: str, unit: str, offset_
     return hourly_stats.merge(avg_max_per_hour, on='Hour', how='left')
 
 
-def cgm_hourly_stats_and_plot(df: pd.DataFrame, date_start_end_list: list[tuple[str, str]], unit: str, offset_mgdL_list: list[float]):
+def cgm_hourly_stats_and_plot(df: pd.DataFrame, date_start_end_list: list[tuple[str, str]], unit: str):
     fig, ax = plt.subplots(figsize=(10, 6))
     colors = plt.cm.tab10.colors
     stems = []
     all_stats = []
 
     for i, (date_start, date_end) in enumerate(date_start_end_list):
-        hourly_stats = _compute_hourly_stats(df, date_start=date_start, date_end=date_end, unit=unit, offset_mgdL=offset_mgdL_list[i])
+        hourly_stats = _compute_hourly_stats(df, date_start=date_start, date_end=date_end, unit=unit)
         hourly_stats = hourly_stats.copy()
         hourly_stats['Date Range'] = f'{date_start} to {date_end}'
         all_stats.append(hourly_stats)
@@ -153,9 +152,6 @@ if __name__ == '__main__':
     setup_cjk_font()
     cgm_hourly_stats_and_plot(
         df=pd.read_csv(args.cgm),
-        date_start_end_list=[
-            ('2026-06-16', '2026-07-01'), 
-            ('2026-07-07', '2026-07-22')],
+        date_start_end_list=PERIOD_LIST,
         unit=args.unit,
-        offset_mgdL_list=[-12, -7]   # offset based on fingerstick measurements, to align with CGM readings
     )
