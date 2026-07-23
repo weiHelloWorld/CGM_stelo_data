@@ -6,7 +6,10 @@ CGM_DATA_CSV_FILE_ALL = './data/Clarity_Export_Chen_Wei_2026-07-23_185008.csv'
 
 def _compute_hourly_stats(df, date_start: str, date_end: str):
     df_egv = df[df['Event Type'] == 'EGV'].copy()
-    df_egv = df_egv[df_egv['Timestamp'].dt.date.isin(pd.date_range(date_start, date_end))]
+    # import pdb; pdb.set_trace()
+    tmp_tt = pd.to_datetime(df_egv['Timestamp (YYYY-MM-DDThh:mm:ss)'])
+    df_egv = df_egv[(tmp_tt >= pd.to_datetime(date_start)) & (tmp_tt <= pd.to_datetime(date_end))]
+    print(f'Range of dates in df_egv: {df_egv["Timestamp (YYYY-MM-DDThh:mm:ss)"].min()} to {df_egv["Timestamp (YYYY-MM-DDThh:mm:ss)"].max()}')
     df_egv['Glucose Value (mg/dL)'] = pd.to_numeric(df_egv['Glucose Value (mg/dL)'], errors='coerce')
     df_egv = df_egv.dropna(subset=['Glucose Value (mg/dL)', 'Timestamp (YYYY-MM-DDThh:mm:ss)'])
     df_egv['Timestamp'] = pd.to_datetime(df_egv['Timestamp (YYYY-MM-DDThh:mm:ss)'])
