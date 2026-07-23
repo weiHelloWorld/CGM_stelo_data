@@ -1,6 +1,8 @@
 import pandas as pd
 from datetime import datetime, timedelta
 
+COMBINED_FOOD_DATA_CSV = '/mnt/c/Users/weich/Downloads/combined_food_data.csv'
+
 def int_to_time(t):
     if pd.isna(t):
         return None
@@ -69,4 +71,4 @@ def get_combined_food_data():
 
 if __name__ == "__main__":
     combined_food_data = get_combined_food_data()
-    combined_food_data.to_csv('/mnt/c/Users/weich/Downloads/combined_food_data.csv', index=False)
+    combined_food_data.to_csv(COMBINED_FOOD_DATA_CSV, index=False)

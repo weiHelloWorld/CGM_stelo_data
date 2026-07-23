@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib import font_manager
 from matplotlib.font_manager import FontProperties
+from helper import setup_cjk_font
 
 from process_raw_cgm_csv import PROCESSED_CGM_CSV_FILE
+from process_raw_food_data import COMBINED_FOOD_DATA_CSV
 
 DEFAULT_CGM_CSV = PROCESSED_CGM_CSV_FILE
-DEFAULT_FOOD_XLSX = "./data/Food_track_202607.xlsx"
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Analyze CGM glucose response by meal.")
@@ -27,8 +27,8 @@ def parse_args():
     )
     parser.add_argument(
         "--food",
-        default=DEFAULT_FOOD_XLSX,
-        help=f"Path to food tracking xlsx (default: {DEFAULT_FOOD_XLSX})",
+        default=COMBINED_FOOD_DATA_CSV,
+        help=f"Path to combined food data CSV (default: {COMBINED_FOOD_DATA_CSV})",
     )
     return parser.parse_args()
 
@@ -53,37 +53,9 @@ def normalize_meal_time(value):
         raise Exception(f"Invalid time format: {s}")
 
 
-def setup_cjk_font():
-    """Register and activate a font that supports Chinese characters."""
-    candidates = [
-        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-        "/mnt/c/Windows/Fonts/msyh.ttc",
-        "C:/Windows/Fonts/msyh.ttc",
-        "/mnt/c/Windows/Fonts/simhei.ttf",
-        "C:/Windows/Fonts/simhei.ttf",
-    ]
-    for path in candidates:
-        if os.path.isfile(path):
-            font_manager.fontManager.addfont(path)
-            prop = FontProperties(fname=path)
-            plt.rcParams["font.family"] = prop.get_name()
-            plt.rcParams["axes.unicode_minus"] = False
-            return prop
-    plt.rcParams["font.sans-serif"] = [
-        "Microsoft YaHei",
-        "SimHei",
-        "Noto Sans CJK SC",
-        "Arial Unicode MS",
-        "sans-serif",
-    ]
-    plt.rcParams["axes.unicode_minus"] = False
-    return FontProperties(family=plt.rcParams["font.sans-serif"][0])
-
-
-def main(cgm_csv_file, food_xlsx_file):
+def main(cgm_csv_file, food_csv_file):
     # 1. Load the Data
-    food_df = pd.read_excel(food_xlsx_file)
+    food_df = pd.read_csv(food_csv_file)
     cgm_df = pd.read_csv(cgm_csv_file)
 
     # 2. Clean and Parse Food Log
@@ -153,7 +125,7 @@ def main(cgm_csv_file, food_xlsx_file):
     # 5. Output Results
     output_df = pd.DataFrame(results)
     output_path = Path(
-        f"/mnt/c/Users/weich/Downloads/Glucose_Meal_Analysis_{Path(food_xlsx_file).stem}.csv"
+        f"/mnt/c/Users/weich/Downloads/Glucose_Meal_Analysis_{Path(food_csv_file).stem}.csv"
     )
     output_df.to_csv(output_path, index=False)
 
