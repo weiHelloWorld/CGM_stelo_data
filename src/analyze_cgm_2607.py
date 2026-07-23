@@ -17,6 +17,7 @@ from process_raw_cgm_csv import PROCESSED_CGM_CSV_FILE
 from process_raw_food_data import COMBINED_FOOD_DATA_CSV
 
 DEFAULT_CGM_CSV = PROCESSED_CGM_CSV_FILE
+GLOCOSE_RESPONSE_OUTPUT_CSV = "/mnt/c/Users/weich/Downloads/glucose_response_analysis.csv"
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Analyze CGM glucose response by meal.")
@@ -114,7 +115,7 @@ def main(cgm_csv_file, food_csv_file):
     # 5. Output Results
     output_df = pd.DataFrame(results)
     output_path = Path(
-        f"/mnt/c/Users/weich/Downloads/Glucose_Meal_Analysis_{Path(food_csv_file).stem}.csv"
+        GLOCOSE_RESPONSE_OUTPUT_CSV
     )
     output_df.to_csv(output_path, index=False)
 
