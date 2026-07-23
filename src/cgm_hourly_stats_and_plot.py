@@ -1,11 +1,12 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
-from analyze_cgm_2607 import CGM_DATA_CSV_FILE_2607
 
-def _compute_hourly_stats(file_path):
-    df = pd.read_csv(file_path)
+CGM_DATA_CSV_FILE_ALL = './data/Clarity_Export_Chen_Wei_2026-07-23_185008.csv'
+
+def _compute_hourly_stats(df, date_start: str, date_end: str):
     df_egv = df[df['Event Type'] == 'EGV'].copy()
+    df_egv = df_egv[df_egv['Timestamp'].dt.date.isin(pd.date_range(date_start, date_end))]
     df_egv['Glucose Value (mg/dL)'] = pd.to_numeric(df_egv['Glucose Value (mg/dL)'], errors='coerce')
     df_egv = df_egv.dropna(subset=['Glucose Value (mg/dL)', 'Timestamp (YYYY-MM-DDThh:mm:ss)'])
     df_egv['Timestamp'] = pd.to_datetime(df_egv['Timestamp (YYYY-MM-DDThh:mm:ss)'])
@@ -16,15 +17,15 @@ def _compute_hourly_stats(file_path):
     ).reset_index()
 
 
-def cgm_hourly_stats_and_plot(file_path_list):
+def cgm_hourly_stats_and_plot(df: pd.DataFrame, date_start_end_list: list[tuple[str, str]]):
     fig, ax = plt.subplots(figsize=(10, 6))
     colors = plt.cm.tab10.colors
     stems = []
 
-    for i, file_path in enumerate(file_path_list):
-        hourly_stats = _compute_hourly_stats(file_path)
+    for i, (date_start, date_end) in enumerate(date_start_end_list):
+        hourly_stats = _compute_hourly_stats(df, date_start=date_start, date_end=date_end)
         color = colors[i % len(colors)]
-        label = Path(file_path).stem
+        label = f'{date_start} to {date_end}'
         stems.append(label)
 
         ax.plot(
@@ -56,7 +57,9 @@ def cgm_hourly_stats_and_plot(file_path_list):
 
 
 if __name__ == '__main__':
-    cgm_hourly_stats_and_plot([
-        "./data/Clarity_Export_Chen_Wei_2026-07-03_145534.csv",
-        CGM_DATA_CSV_FILE_2607
-    ])
+    cgm_hourly_stats_and_plot(
+        df=pd.read_csv(CGM_DATA_CSV_FILE_ALL), date_start_end_list=[
+            ('2026-06-16', '2026-07-01'), 
+            ('2026-07-07', '2026-07-22')]
+    )
+        
