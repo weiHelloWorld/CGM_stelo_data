@@ -3,6 +3,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from process_raw_cgm_csv import PERIOD_LIST, PROCESSED_CGM_CSV_FILE
+from helper import setup_cjk_font
+
+setup_cjk_font()
 
 # Load the data
 df = pd.read_csv(PROCESSED_CGM_CSV_FILE)
@@ -57,3 +60,17 @@ df_final = df_final[['hour',
 
 
 print(df_final.to_string(index=False))
+
+plt.figure(figsize=(10, 6))
+plt.plot(df_final['hour'], df_final['Period_1_Jun16_Jul01_avg_ratio'], marker='o', label='第1阶段：6月16日-7月1日')
+plt.plot(df_final['hour'], df_final['Period_2_Jul07_Jul22_avg_ratio'], marker='o', label='第2阶段：7月7日-7月22日')
+plt.title('每小时平均高血糖比例（>7.8 mmol/L）', fontsize=14)
+plt.xlabel('一天中的小时', fontsize=12)
+plt.ylabel('平均高血糖比例', fontsize=12)
+plt.xticks(range(0, 24))
+plt.grid(True, linestyle=':', alpha=0.6)
+plt.legend()
+plt.tight_layout()
+output_path = '/mnt/c/Users/weich/Downloads/high_glucose_ratio_by_hour.png'
+plt.savefig(output_path, dpi=300, bbox_inches='tight')
+print(f'Saved plot to {output_path}')
