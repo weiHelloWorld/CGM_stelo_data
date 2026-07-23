@@ -3,11 +3,8 @@ import pandas as pd
 import seaborn as sns
 
 from analyze_cgm_2607 import GLOCOSE_RESPONSE_OUTPUT_CSV
-
-# Set style and Chinese font support
-plt.rcParams["font.sans-serif"] = ["Arial Unicode MS", "SimHei", "sans-serif"]
-plt.rcParams["axes.unicode_minus"] = False
-sns.set_theme(style="whitegrid")
+from helper import setup_cjk_font
+setup_cjk_font()
 
 # 1. Load Data
 df = pd.read_csv(GLOCOSE_RESPONSE_OUTPUT_CSV)
@@ -135,4 +132,8 @@ for title, categories in meal_categories.items():
         f"{X_COL} (mg/dL)", f"{Y_COL} (mg/dL)", fontsize=11, fontweight="bold"
     )
 
-    plt.show()
+    output_path = f"/mnt/c/Users/weich/Downloads/{title.replace(' ', '_').replace('(', '').replace(')', '').replace(':', '')}_{X_COL.replace(' ', '_')}_vs_{Y_COL.replace(' ', '_')}.png"
+    g.fig.savefig(output_path, dpi=300, bbox_inches="tight")
+    print(f'Saved plot to {output_path}')
+
+    # plt.show()
