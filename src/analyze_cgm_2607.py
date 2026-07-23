@@ -102,6 +102,13 @@ def main(cgm_csv_file, food_xlsx_file):
     else:
         food_df["Meal_Timestamp"] = pd.to_datetime(food_df["Meal_Timestamp"])
     food_df = food_df.dropna(subset=["Food", "Meal_Timestamp"]).reset_index(drop=True)
+    food_df = food_df.sort_values("Meal_Timestamp").reset_index(drop=True)
+    food_df["Mins Since Prev Meal"] = (
+        food_df["Meal_Timestamp"] - food_df["Meal_Timestamp"].shift(1)
+    ).dt.total_seconds() / 60
+    food_df["Mins Until Next Meal"] = (
+        food_df["Meal_Timestamp"].shift(-1) - food_df["Meal_Timestamp"]
+    ).dt.total_seconds() / 60
 
     # 3. Clean and Parse CGM Data
     cgm_df = cgm_df[cgm_df["Event Type"] == "EGV"].copy()
@@ -140,6 +147,8 @@ def main(cgm_csv_file, food_xlsx_file):
             {
                 "Meal_Timestamp": meal["Meal_Timestamp"],
                 "Food": meal["Food"],
+                "Mins Since Prev Meal": meal["Mins Since Prev Meal"],
+                "Mins Until Next Meal": meal["Mins Until Next Meal"],
                 "Pre-Meal Glucose": pre_glucose,
                 "2h Peak Increase": peak_2h_delta,
                 "4h Avg Increase": avg_4h_delta,
