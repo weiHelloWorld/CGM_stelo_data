@@ -51,13 +51,6 @@ def normalize_meal_time(value):
         raise Exception(f"Invalid time format: {s}")
 
 
-def default_output_path():
-    downloads = Path("/mnt/c/Users/weich/Downloads")
-    if not downloads.exists():
-        downloads = Path("/mnt/c/Users/weich")
-    return downloads / "Glucose_Meal_Analysis.csv"
-
-
 def setup_cjk_font():
     """Register and activate a font that supports Chinese characters."""
     candidates = [
@@ -157,7 +150,9 @@ def main(cgm_csv_file, food_xlsx_file):
 
     # 5. Output Results
     output_df = pd.DataFrame(results)
-    output_path = default_output_path()
+    output_path = Path(
+        f"/mnt/c/Users/weich/Downloads/Glucose_Meal_Analysis_{Path(food_xlsx_file).stem}.csv"
+    )
     output_df.to_csv(output_path, index=False)
 
     font_prop = setup_cjk_font()
