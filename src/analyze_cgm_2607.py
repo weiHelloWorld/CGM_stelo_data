@@ -12,7 +12,9 @@ import seaborn as sns
 from matplotlib import font_manager
 from matplotlib.font_manager import FontProperties
 
-DEFAULT_CGM_CSV = "/mnt/c/Users/weich/Downloads/Clarity_Export_Chen_Wei_2026-07-23_021431.csv"
+from process_raw_cgm_csv import PROCESSED_CGM_CSV_FILE
+
+DEFAULT_CGM_CSV = PROCESSED_CGM_CSV_FILE
 DEFAULT_FOOD_XLSX = "./data/Food_track_202607.xlsx"
 
 
