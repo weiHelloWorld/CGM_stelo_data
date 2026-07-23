@@ -50,9 +50,9 @@ def cgm_hourly_stats_and_plot(df: pd.DataFrame, date_start_end_list: list[tuple[
             # label=f'{label} ±1 SD'
         )
 
-    ax.set_title('Hourly Glucose Trend Over All Days', fontsize=14, fontweight='bold', pad=15)
-    ax.set_xlabel('Hour of the Day', fontsize=12)
-    ax.set_ylabel('Glucose Level (mmol/L)', fontsize=12)
+    ax.set_title('全天分时葡萄糖变化趋势', fontsize=14, fontweight='bold', pad=15)
+    ax.set_xlabel('一天中的小时', fontsize=12)
+    ax.set_ylabel('葡萄糖水平 (mmol/L)', fontsize=12)
     ax.set_xticks(range(0, 24))
     ax.set_xlim(0, 23)
     ax.grid(True, linestyle=':', alpha=0.6)
