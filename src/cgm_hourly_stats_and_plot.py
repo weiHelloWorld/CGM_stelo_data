@@ -58,21 +58,36 @@ def parse_args():
 def _compute_hourly_stats(df, date_start: str, date_end: str, unit: str, offset_mgdL: float):
     df_egv = df[df['Event Type'] == 'EGV'].copy()
     # import pdb; pdb.set_trace()
-    tmp_tt = pd.to_datetime(df_egv['Timestamp (YYYY-MM-DDThh:mm:ss)'])
-    df_egv = df_egv[(tmp_tt >= pd.to_datetime(date_start)) & (tmp_tt <= pd.to_datetime(date_end))]
-    print(f'Range of dates in df_egv: {df_egv["Timestamp (YYYY-MM-DDThh:mm:ss)"].min()} to {df_egv["Timestamp (YYYY-MM-DDThh:mm:ss)"].max()}')
+    df_egv['Timestamp'] = pd.to_datetime(df_egv['Timestamp (YYYY-MM-DDThh:mm:ss)'])
+    df_egv = df_egv[(df_egv['Timestamp'] >= pd.to_datetime(date_start)) & (df_egv['Timestamp'] <= pd.to_datetime(date_end))]
+    print(f'Range of dates in df_egv: {df_egv["Timestamp"].min()} to {df_egv["Timestamp"].max()}')
     df_egv['Glucose Value (mg/dL)'] = pd.to_numeric(df_egv['Glucose Value (mg/dL)'], errors='coerce') + offset_mgdL
-    df_egv = df_egv.dropna(subset=['Glucose Value (mg/dL)', 'Timestamp (YYYY-MM-DDThh:mm:ss)'])
+    df_egv = df_egv.dropna(subset=['Glucose Value (mg/dL)', 'Timestamp'])
+    df_egv['Glucose_mmol_L'] = df_egv['Glucose Value (mg/dL)'] * MG_DL_TO_MMOL_L
     if unit == 'mmol/L':
-        df_egv['Glucose'] = df_egv['Glucose Value (mg/dL)'] * MG_DL_TO_MMOL_L
+        df_egv['Glucose'] = df_egv['Glucose_mmol_L']
     else:
         df_egv['Glucose'] = df_egv['Glucose Value (mg/dL)']
-    df_egv['Timestamp'] = pd.to_datetime(df_egv['Timestamp (YYYY-MM-DDThh:mm:ss)'])
+    df_egv['Date'] = df_egv['Timestamp'].dt.date
     df_egv['Hour'] = df_egv['Timestamp'].dt.hour
-    return df_egv.groupby('Hour')['Glucose'].agg(
-        mean='mean',
-        std='std'
+
+    hourly_stats = df_egv.groupby('Hour').agg(
+        mean=('Glucose', 'mean'),
+        std=('Glucose', 'std'),
     ).reset_index()
+
+    daily_hourly_max = (
+        df_egv.groupby(['Date', 'Hour'])['Glucose']
+              .max()
+              .reset_index()
+    )
+    avg_max_per_hour = (
+        daily_hourly_max.groupby('Hour')['Glucose']
+                        .mean()
+                        .reset_index(name='avg_max_of_hourly_daily_max')
+    )
+
+    return hourly_stats.merge(avg_max_per_hour, on='Hour', how='left')
 
 
 def cgm_hourly_stats_and_plot(df: pd.DataFrame, date_start_end_list: list[tuple[str, str]], unit: str, offset_mgdL_list: list[float]):
