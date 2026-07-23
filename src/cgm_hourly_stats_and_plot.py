@@ -1,10 +1,42 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
+from matplotlib.font_manager import FontProperties
 from pathlib import Path
 
 MG_DL_TO_MMOL_L = 1 / 18.0182
 
 CGM_DATA_CSV_FILE_ALL = './data/Clarity_Export_Chen_Wei_2026-07-23_185008.csv'
+
+
+def setup_cjk_font():
+    candidates = [
+        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+        '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+        '/mnt/c/Windows/Fonts/msyh.ttc',
+        'C:/Windows/Fonts/msyh.ttc',
+        '/mnt/c/Windows/Fonts/simhei.ttf',
+        'C:/Windows/Fonts/simhei.ttf',
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            font_manager.fontManager.addfont(path)
+            prop = FontProperties(fname=path)
+            plt.rcParams['font.family'] = prop.get_name()
+            plt.rcParams['axes.unicode_minus'] = False
+            return prop
+
+    plt.rcParams['font.sans-serif'] = [
+        'Microsoft YaHei',
+        'SimHei',
+        'Noto Sans CJK SC',
+        'Arial Unicode MS',
+        'sans-serif',
+    ]
+    plt.rcParams['axes.unicode_minus'] = False
+    return FontProperties(family=plt.rcParams['font.sans-serif'][0])
+
 
 def _compute_hourly_stats(df, date_start: str, date_end: str):
     df_egv = df[df['Event Type'] == 'EGV'].copy()
@@ -63,6 +95,7 @@ def cgm_hourly_stats_and_plot(df: pd.DataFrame, date_start_end_list: list[tuple[
 
 
 if __name__ == '__main__':
+    setup_cjk_font()
     cgm_hourly_stats_and_plot(
         df=pd.read_csv(CGM_DATA_CSV_FILE_ALL), date_start_end_list=[
             ('2026-06-16', '2026-07-01'), 
