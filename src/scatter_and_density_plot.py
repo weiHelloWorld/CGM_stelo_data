@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+MG_DL_TO_MMOL_L = 1 / 18.0182
+
 from analyze_cgm_2607 import GLOCOSE_RESPONSE_OUTPUT_CSV
 from helper import setup_cjk_font
 setup_cjk_font()
@@ -44,9 +46,12 @@ def assign_period(dt):
 df_filtered["Period"] = df_filtered["Meal_Timestamp"].apply(assign_period)
 df_plots = df_filtered.dropna(subset=["Period"]).copy()
 
+df_plots["4h Avg Increase (mmol/L)"] = df_plots["4h Avg Increase"] * MG_DL_TO_MMOL_L
+df_plots["2h Peak Increase (mmol/L)"] = df_plots["2h Peak Increase"] * MG_DL_TO_MMOL_L
+
 # 5. Define Axes Variables
-Y_COL = "2h Peak Increase"
-X_COL = "4h Avg Increase"
+Y_COL = "2h Peak Increase (mmol/L)"
+X_COL = "4h Avg Increase (mmol/L)"
 
 # Meal Categories to Loop Through
 meal_categories = {
@@ -62,6 +67,17 @@ palette = {
     "Period 1 (2026-06-16 to 2026-07-01)": "#1f77b4",  # Blue
     "Period 2 (2026-07-07 to 2026-07-22)": "#ff7f0e",  # Orange
 }
+
+x_min = df_plots[X_COL].min()
+x_max = df_plots[X_COL].max()
+y_min = df_plots[Y_COL].min()
+y_max = df_plots[Y_COL].max()
+
+plot_min = min(x_min, y_min)
+plot_max = max(x_max, y_max)
+plot_margin = max((plot_max - plot_min) * 0.05, 0.1)
+
+xlim = ylim = (plot_min - plot_margin, plot_max + plot_margin)
 
 # 6. Generate Joint Scatter + Density Plots
 for title, categories in meal_categories.items():
@@ -86,7 +102,7 @@ for title, categories in meal_categories.items():
         height=7,
     )
 
-    # 2D KDE Contours on Main Plot Area
+    # 2D filled KDE density on Main Plot Area
     sns.kdeplot(
         data=subset,
         x=X_COL,
@@ -94,9 +110,10 @@ for title, categories in meal_categories.items():
         hue="Period",
         palette=palette,
         ax=g.ax_joint,
-        levels=4,
-        alpha=0.4,
-        linewidths=1.5,
+        fill=True,
+        thresh=0.05,
+        levels=10,
+        alpha=0.25,
         legend=False,
     )
 
@@ -129,10 +146,14 @@ for title, categories in meal_categories.items():
         f"{title}: {X_COL} vs. {Y_COL}", y=1.02, fontsize=14, fontweight="bold"
     )
     g.set_axis_labels(
-        f"{X_COL} (mg/dL)", f"{Y_COL} (mg/dL)", fontsize=11, fontweight="bold"
+        f"{X_COL}", f"{Y_COL}", fontsize=11, fontweight="bold"
     )
+    g.ax_joint.set_xlim(xlim)
+    g.ax_joint.set_ylim(ylim)
+    g.ax_marg_x.set_xlim(xlim)
+    g.ax_marg_y.set_ylim(ylim)
 
-    output_path = f"/mnt/c/Users/weich/Downloads/{title.replace(' ', '_').replace('(', '').replace(')', '').replace(':', '')}_{X_COL.replace(' ', '_')}_vs_{Y_COL.replace(' ', '_')}.png"
+    output_path = f"/mnt/c/Users/weich/Downloads/{title.replace(' ', '_').replace('(', '').replace(')', '').replace(':', '')}.png"
     g.fig.savefig(output_path, dpi=300, bbox_inches="tight")
     print(f'Saved plot to {output_path}')
 
