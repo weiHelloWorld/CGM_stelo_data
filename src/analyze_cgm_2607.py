@@ -92,12 +92,15 @@ def main(cgm_csv_file, food_xlsx_file):
     cgm_df = pd.read_csv(cgm_csv_file)
 
     # 2. Clean and Parse Food Log
-    food_df["Date"] = food_df["Date"].ffill()
-    food_df["Time"] = food_df["Time"].apply(normalize_meal_time)
-    food_df["Meal_Timestamp"] = pd.to_datetime(
-        food_df["Date"].astype(str) + " " + food_df["Time"],
-        errors="coerce",
-    )
+    if 'Meal_Timestamp' not in food_df.columns:
+        food_df["Date"] = food_df["Date"].ffill()
+        food_df["Time"] = food_df["Time"].apply(normalize_meal_time)
+        food_df["Meal_Timestamp"] = pd.to_datetime(
+            food_df["Date"].astype(str) + " " + food_df["Time"],
+            errors="coerce",
+        )
+    else:
+        food_df["Meal_Timestamp"] = pd.to_datetime(food_df["Meal_Timestamp"])
     food_df = food_df.dropna(subset=["Food", "Meal_Timestamp"]).reset_index(drop=True)
 
     # 3. Clean and Parse CGM Data
@@ -135,12 +138,11 @@ def main(cgm_csv_file, food_xlsx_file):
 
         results.append(
             {
-                "Date": meal["Date"],
-                "Time": meal["Time"],
+                "Meal_Timestamp": meal["Meal_Timestamp"],
                 "Food": meal["Food"],
                 "Pre-Meal Glucose": pre_glucose,
-                "2h Peak Increase": round(peak_2h_delta, 1) if pd.notna(peak_2h_delta) else np.nan,
-                "4h Avg Increase": round(avg_4h_delta, 1) if pd.notna(avg_4h_delta) else np.nan,
+                "2h Peak Increase": peak_2h_delta,
+                "4h Avg Increase": avg_4h_delta,
             }
         )
 
