@@ -89,7 +89,7 @@ for title, categories in meal_categories.items():
         print(f"No valid data points found for: {title}")
         continue
 
-    # Main Joint Plot (Scatter + Marginal Density Distributions)
+    # Main Joint Plot (Scatter only)
     g = sns.jointplot(
         data=subset,
         x=X_COL,
@@ -102,22 +102,7 @@ for title, categories in meal_categories.items():
         height=7,
     )
 
-    # 2D filled KDE density on Main Plot Area
-    sns.kdeplot(
-        data=subset,
-        x=X_COL,
-        y=Y_COL,
-        hue="Period",
-        palette=palette,
-        ax=g.ax_joint,
-        fill=True,
-        thresh=0.05,
-        levels=10,
-        alpha=0.25,
-        legend=False,
-    )
-
-    # Top Marginal Density Distribution (2h Peak Increase)
+    # Top Marginal Density Distribution (4h Avg Increase)
     sns.kdeplot(
         data=subset,
         x=X_COL,
@@ -129,7 +114,7 @@ for title, categories in meal_categories.items():
         legend=False,
     )
 
-    # Right Marginal Density Distribution (4h Avg Increase)
+    # Right Marginal Density Distribution (2h Peak Increase)
     sns.kdeplot(
         data=subset,
         y=Y_COL,
