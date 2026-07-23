@@ -2,6 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 
+MG_DL_TO_MMOL_L = 1 / 18.0182
+
 CGM_DATA_CSV_FILE_ALL = './data/Clarity_Export_Chen_Wei_2026-07-23_185008.csv'
 
 def _compute_hourly_stats(df, date_start: str, date_end: str):
@@ -12,9 +14,10 @@ def _compute_hourly_stats(df, date_start: str, date_end: str):
     print(f'Range of dates in df_egv: {df_egv["Timestamp (YYYY-MM-DDThh:mm:ss)"].min()} to {df_egv["Timestamp (YYYY-MM-DDThh:mm:ss)"].max()}')
     df_egv['Glucose Value (mg/dL)'] = pd.to_numeric(df_egv['Glucose Value (mg/dL)'], errors='coerce')
     df_egv = df_egv.dropna(subset=['Glucose Value (mg/dL)', 'Timestamp (YYYY-MM-DDThh:mm:ss)'])
+    df_egv['Glucose (mmol/L)'] = df_egv['Glucose Value (mg/dL)'] * MG_DL_TO_MMOL_L
     df_egv['Timestamp'] = pd.to_datetime(df_egv['Timestamp (YYYY-MM-DDThh:mm:ss)'])
     df_egv['Hour'] = df_egv['Timestamp'].dt.hour
-    return df_egv.groupby('Hour')['Glucose Value (mg/dL)'].agg(
+    return df_egv.groupby('Hour')['Glucose (mmol/L)'].agg(
         mean='mean',
         std='std'
     ).reset_index()
@@ -36,7 +39,7 @@ def cgm_hourly_stats_and_plot(df: pd.DataFrame, date_start_end_list: list[tuple[
             hourly_stats['mean'],
             color=color,
             linewidth=2.5,
-            label=f'{label} Mean'
+            label=f'{label}'
         )
         ax.fill_between(
             hourly_stats['Hour'],
@@ -49,7 +52,7 @@ def cgm_hourly_stats_and_plot(df: pd.DataFrame, date_start_end_list: list[tuple[
 
     ax.set_title('Hourly Glucose Trend Over All Days', fontsize=14, fontweight='bold', pad=15)
     ax.set_xlabel('Hour of the Day', fontsize=12)
-    ax.set_ylabel('Glucose Level (mg/dL)', fontsize=12)
+    ax.set_ylabel('Glucose Level (mmol/L)', fontsize=12)
     ax.set_xticks(range(0, 24))
     ax.set_xlim(0, 23)
     ax.grid(True, linestyle=':', alpha=0.6)
