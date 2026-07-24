@@ -2,6 +2,7 @@ import pandas as pd
 from helper import setup_cjk_font
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from datetime import datetime, timedelta
 
 from process_raw_food_data import COMBINED_FOOD_DATA_CSV
@@ -203,17 +204,48 @@ ax.axhline(y=0, color='gray', linestyle='--', linewidth=0.8, alpha=0.5)
 ax.set_xlabel('餐后时间 (小时)', fontsize=13)
 ax.set_ylabel('餐后葡萄糖增量 (mmol/L)', fontsize=13)
 ax.set_title(
-    '餐后葡萄糖反应\n(碳水 45–55g，0–4 小时)', 
+    '餐后葡萄糖反应', 
     fontsize=15
 )
 ax.set_xlim(0, 4)
 ax.set_xticks(np.arange(0, 4.5, 0.5))
-ax.legend(
-    loc='upper left', 
-    bbox_to_anchor=(1.02, 1), 
-    fontsize=9, 
-    framealpha=0.95
-)
+all_handles, all_labels = ax.get_legend_handles_labels()
+meals_handles = []
+meals_labels = []
+interrupt_handles = []
+interrupt_labels = []
+for handle, label in zip(all_handles, all_labels):
+    if label in interruption_marker_map:
+        interrupt_handles.append(handle)
+        interrupt_labels.append(label)
+    else:
+        meals_handles.append(handle)
+        meals_labels.append(label)
+if meals_handles:
+    leg1 = ax.legend(
+        meals_handles,
+        meals_labels,
+        loc='upper right',
+        bbox_to_anchor=(0.98, 0.98),
+        fontsize=9,
+        framealpha=0.95,
+        title='餐次曲线'
+    )
+    ax.add_artist(leg1)
+if interrupt_handles:
+    interrupt_proxies = [
+        Line2D([0], [0], marker=interruption_marker_map[label], color='black', linestyle='None', markersize=8)
+        for label in interrupt_labels
+    ]
+    ax.legend(
+        interrupt_proxies,
+        interrupt_labels,
+        loc='lower right',
+        bbox_to_anchor=(0.98, 0.58),
+        fontsize=9,
+        framealpha=0.95,
+        title='中断类型'
+    )
 ax.grid(True, alpha=0.3, linestyle='-')
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
