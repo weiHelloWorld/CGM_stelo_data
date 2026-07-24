@@ -56,7 +56,8 @@ English_to_Chinese_map = {
     "pizza": "披萨",
     "noodles": "面条",
     "broth": "汤底",  # if appeared
-    "seafood": "海鲜"   # if needed
+    "seafood": "海鲜",   # if needed
+    "with": "配",  # if needed
 }
 
 import re

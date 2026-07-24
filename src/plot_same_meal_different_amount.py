@@ -5,7 +5,7 @@ import pandas as pd
 from helper import setup_cjk_font
 from config import COMBINED_FOOD_DATA_CSV, DOWNLOADS_DIR, EXERCISE_CSV, PROCESSED_CGM_CSV_FILE
 from process_raw_food_data import get_combined_food_data
-from plot_increase_for_meals_with_similar_carbs import plot_glucose_increase_for_meals
+from helper import plot_glucose_increase_for_meals
 
 
 def main():
@@ -26,8 +26,10 @@ def main():
     cgm_df['Timestamp'] = pd.to_datetime(cgm_df['Timestamp'])
     exercise_df['Timestamp'] = pd.to_datetime(exercise_df['Timestamp (YYYY-MM-DDThh:mm:ss)'])
 
+    food_name_text = food_df['Food'].fillna('').astype(str).str.lower()
     target_meals = food_df[
-        food_df['Food'].fillna('').astype(str).str.contains('宫保鸡丁', na=False)
+        food_name_text.str.contains('宫保鸡丁', na=False) |
+        food_name_text.str.contains('kung pao chicken', na=False)
     ].copy()
     target_meals = target_meals.sort_values('Meal_Timestamp').reset_index(drop=True)
 
