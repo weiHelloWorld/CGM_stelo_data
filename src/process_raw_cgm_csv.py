@@ -5,8 +5,8 @@ PROCESSED_CGM_CSV_FILE = './data/processed_cgm_glucose_data.csv'
 
 MG_DL_TO_MMOL_L = 1 / 18.0182
 PERIOD_LIST = [
-    ('2026-06-16', '2026-07-01'), 
-    ('2026-07-07', '2026-07-22')
+    ('2026-06-16', '2026-07-02'), 
+    ('2026-07-07', '2026-07-23')
 ]
 OFFSET_LIST = [-12, -7]  # offset based on fingerstick measurements, to align with CGM readings
 
@@ -21,8 +21,9 @@ def process_cgm_glucose_data(csv_path, period_list, offset_list):
         df_egv = df[df['Event Type'] == 'EGV'].copy()
         # import pdb; pdb.set_trace()
         df_egv['Timestamp'] = pd.to_datetime(df_egv['Timestamp (YYYY-MM-DDThh:mm:ss)'])
+        date_end_inclusive = pd.to_datetime(date_end) + pd.Timedelta(days=1)
         df_egv = df_egv[(df_egv['Timestamp'] >= pd.to_datetime(date_start)) 
-                        & (df_egv['Timestamp'] <= pd.to_datetime(date_end))]
+                        & (df_egv['Timestamp'] < date_end_inclusive)]
         print(f'Range of dates in df_egv: {df_egv["Timestamp"].min()} to {df_egv["Timestamp"].max()}')
         df_egv['Glucose Value (mg/dL)'] = pd.to_numeric(df_egv['Glucose Value (mg/dL)'], errors='coerce') + offset_mgdL
         df_egv['Glucose_mmol_L'] = df_egv['Glucose Value (mg/dL)'] * MG_DL_TO_MMOL_L

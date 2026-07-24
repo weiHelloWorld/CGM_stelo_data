@@ -62,8 +62,8 @@ df_final = df_final[['hour',
 print(df_final.to_string(index=False))
 
 plt.figure(figsize=(10, 6))
-plt.plot(df_final['hour'], df_final['Period_1_Jun16_Jul01_avg_ratio'] * 100, marker='o', label='第1阶段：6月16日-7月1日')
-plt.plot(df_final['hour'], df_final['Period_2_Jul07_Jul22_avg_ratio'] * 100, marker='o', label='第2阶段：7月7日-7月22日')
+plt.plot(df_final['hour'], df_final['Period_1_Jun16_Jul01_avg_ratio'] * 100, marker='o', label='之前')
+plt.plot(df_final['hour'], df_final['Period_2_Jul07_Jul22_avg_ratio'] * 100, marker='o', label='之后')
 plt.title('每小时平均高血糖比例（>7.8 mmol/L）', fontsize=14)
 plt.xlabel('一天中的小时', fontsize=12)
 plt.ylabel('平均高血糖比例 (%)', fontsize=12)
