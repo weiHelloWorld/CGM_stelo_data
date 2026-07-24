@@ -25,7 +25,7 @@ cgm_df['Timestamp'] = pd.to_datetime(cgm_df['Timestamp'])
 # ============================================================
 
 target_meals = food_df[
-    (food_df['carbs'] >= 45) & 
+    (food_df['carbs'] > 45) & 
     (food_df['carbs'] <= 55)
 ].copy()
 
@@ -97,7 +97,7 @@ for i, meal in enumerate(meal_data):
     
     # Shorten label for legend readability
     short_food = meal['food'][:40] + '...' if len(meal['food']) > 40 else meal['food']
-    label = f"{meal['meal_time'].strftime('%m-%d %H:%M')} | {short_food} | {meal['carbs']:.0f}g"
+    label = f"{short_food} | 碳水 = {meal['carbs']:.0f}g"
     
     ax.plot(
         data['hours_since_meal'], 
