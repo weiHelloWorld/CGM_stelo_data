@@ -10,36 +10,6 @@ from process_raw_food_data import COMBINED_FOOD_DATA_CSV
 from process_raw_cgm_csv import PROCESSED_CGM_CSV_FILE
 from English_to_Chinese_map import English_to_Chinese_map, to_Chinese_meal_name
 
-setup_cjk_font()
-
-# ============================================================
-# 1. LOAD DATA
-# ============================================================
-
-food_df = pd.read_csv(COMBINED_FOOD_DATA_CSV)
-cgm_df = pd.read_csv(PROCESSED_CGM_CSV_FILE)
-exercise_df = pd.read_csv('./data/exercise.csv')
-
-# Convert timestamps to datetime
-food_df['Meal_Timestamp'] = pd.to_datetime(food_df['Meal_Timestamp'])
-cgm_df['Timestamp'] = pd.to_datetime(cgm_df['Timestamp'])
-exercise_df['Timestamp'] = pd.to_datetime(exercise_df['Timestamp (YYYY-MM-DDThh:mm:ss)'])
-
-# ============================================================
-# 2. FILTER MEALS WITH 45–55g CARBS
-# ============================================================
-
-target_meals = food_df[
-    (food_df['carbs'] > 45) & 
-    (food_df['carbs'] <= 55)
-].copy()
-
-print(f"找到 {len(target_meals)} 个碳水 45-55g 的餐次")
-
-# ============================================================
-# 3. EXTRACT PRE-MEAL & POST-MEAL GLUCOSE FOR EACH MEAL
-# ============================================================
-
 
 def plot_glucose_increase_for_meals(
     target_meals,
@@ -288,15 +258,35 @@ def plot_glucose_increase_for_meals(
     return pd.DataFrame(summary_rows)
 
 
-summary_df = plot_glucose_increase_for_meals(
-    target_meals,
-    food_df,
-    cgm_df,
-    exercise_df,
-    '/mnt/c/Users/weich/Downloads/glucose_increase_45_55g_carbs.png',
-)
+def main():
+    setup_cjk_font()
 
-print("\n=== SUMMARY ===")
-print(summary_df.to_string(index=False))
+    food_df = pd.read_csv(COMBINED_FOOD_DATA_CSV)
+    cgm_df = pd.read_csv(PROCESSED_CGM_CSV_FILE)
+    exercise_df = pd.read_csv('./data/exercise.csv')
 
-# summary_df.to_csv('meal_summary_45_55g_carbs.csv', index=False)
+    food_df['Meal_Timestamp'] = pd.to_datetime(food_df['Meal_Timestamp'])
+    cgm_df['Timestamp'] = pd.to_datetime(cgm_df['Timestamp'])
+    exercise_df['Timestamp'] = pd.to_datetime(exercise_df['Timestamp (YYYY-MM-DDThh:mm:ss)'])
+
+    target_meals = food_df[
+        (food_df['carbs'] > 45) &
+        (food_df['carbs'] <= 55)
+    ].copy()
+
+    print(f"找到 {len(target_meals)} 个碳水 45-55g 的餐次")
+
+    summary_df = plot_glucose_increase_for_meals(
+        target_meals=target_meals,
+        food_df=food_df,
+        cgm_df=cgm_df,
+        exercise_df=exercise_df,
+        output_path='/mnt/c/Users/weich/Downloads/glucose_increase_45_55g_carbs.png',
+    )
+
+    print("\n=== SUMMARY ===")
+    print(summary_df.to_string(index=False))
+
+
+if __name__ == "__main__":
+    main()
