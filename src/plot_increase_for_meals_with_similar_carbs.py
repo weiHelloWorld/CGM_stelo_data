@@ -8,7 +8,7 @@ import re
 
 from process_raw_food_data import COMBINED_FOOD_DATA_CSV
 from process_raw_cgm_csv import PROCESSED_CGM_CSV_FILE
-from English_to_Chinese_map import English_to_Chinese_map, to_Chinese_meal_name
+from English_to_Chinese_map import to_Chinese_meal_name
 
 
 def plot_glucose_increase_for_meals(
