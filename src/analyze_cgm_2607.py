@@ -100,12 +100,23 @@ def main(cgm_csv_file, food_csv_file):
         cgm_2h = cgm_df[(cgm_df["Timestamp"] > meal_time) & (cgm_df["Timestamp"] <= post_2h_end)]
         cgm_4h = cgm_df[(cgm_df["Timestamp"] > meal_time) & (cgm_df["Timestamp"] <= post_4h_end)]
 
+        target_1h = meal_time + pd.Timedelta(hours=1)
+        target_2h = meal_time + pd.Timedelta(hours=2)
+
+        glucose_1h = np.nan
+        glucose_2h = np.nan
+        if not cgm_df.empty:
+            glucose_1h = cgm_df.iloc[(cgm_df["Timestamp"] - target_1h).abs().argsort()[:1]]["Glucose"].values[0]
+            glucose_2h = cgm_df.iloc[(cgm_df["Timestamp"] - target_2h).abs().argsort()[:1]]["Glucose"].values[0]
+
         peak_2h_delta = (cgm_2h["Glucose"].max() - pre_glucose) if not cgm_2h.empty else np.nan
         avg_4h_delta = (cgm_4h["Glucose"].mean() - pre_glucose) if not cgm_4h.empty else np.nan
         i_res = meal.to_dict()
         i_res.update(
             {
                 "Pre-Meal Glucose": pre_glucose,
+                "1h Glucose": glucose_1h,
+                "2h Glucose": glucose_2h,
                 "2h Peak Increase": peak_2h_delta,
                 "4h Avg Increase": avg_4h_delta,
             }
