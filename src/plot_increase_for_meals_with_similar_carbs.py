@@ -4,9 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from datetime import datetime, timedelta
+import re
 
 from process_raw_food_data import COMBINED_FOOD_DATA_CSV
 from process_raw_cgm_csv import PROCESSED_CGM_CSV_FILE
+from English_to_Chinese_map import English_to_Chinese_map, to_Chinese_meal_name
 
 setup_cjk_font()
 
@@ -106,8 +108,9 @@ for i, meal in enumerate(meal_data):
     data = meal['post_meal_data']
     meal_time = meal['meal_time']
     
-    # Shorten label for legend readability
-    short_food = meal['food'][:40] + '...' if len(meal['food']) > 40 else meal['food']
+    food_name_cn = to_Chinese_meal_name(meal['food'])
+    short_food = food_name_cn[:40] + '...' if len(food_name_cn) > 40 else food_name_cn
+
     label = f"{short_food} | 碳水 = {meal['carbs']:.0f}g"
 
     # Determine first interruption in the 0-4h window: exercise or another meal
