@@ -6,7 +6,7 @@ from pathlib import Path
 from helper import setup_cjk_font
 from process_raw_cgm_csv import MG_DL_TO_MMOL_L, PERIOD_LIST, PROCESSED_CGM_CSV_FILE
 
-
+EXCLUDE_DATES = ['2026-06-27']
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Plot CGM hourly glucose trends.')
@@ -29,7 +29,6 @@ def _compute_hourly_stats(df, date_start: str, date_end: str, unit: str):
     # import pdb; pdb.set_trace()
     df_egv['Timestamp'] = pd.to_datetime(df_egv['Timestamp (YYYY-MM-DDThh:mm:ss)'])
     df_egv = df_egv[(df_egv['Timestamp'] >= pd.to_datetime(date_start)) & (df_egv['Timestamp'] <= pd.to_datetime(date_end))]
-    print(f'Range of dates in df_egv: {df_egv["Timestamp"].min()} to {df_egv["Timestamp"].max()}')
     df_egv['Glucose Value (mg/dL)'] = pd.to_numeric(df_egv['Glucose Value (mg/dL)'], errors='coerce')
     df_egv = df_egv.dropna(subset=['Glucose Value (mg/dL)', 'Timestamp'])
     df_egv['Glucose_mmol_L'] = df_egv['Glucose Value (mg/dL)'] * MG_DL_TO_MMOL_L
@@ -38,6 +37,8 @@ def _compute_hourly_stats(df, date_start: str, date_end: str, unit: str):
     else:
         df_egv['Glucose'] = df_egv['Glucose Value (mg/dL)']
     df_egv['Date'] = df_egv['Timestamp'].dt.date
+    df_egv = df_egv[~df_egv['Date'].astype(str).isin(EXCLUDE_DATES)]
+    print(f'all dates in df_egv: {list(df_egv["Date"].astype(str).unique())}')
     df_egv['Hour'] = df_egv['Timestamp'].dt.hour
 
     hourly_stats = df_egv.groupby('Hour').agg(
