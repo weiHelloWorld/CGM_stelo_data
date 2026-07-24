@@ -3,10 +3,9 @@ from pathlib import Path
 import pandas as pd
 
 from helper import setup_cjk_font
-from config import COMBINED_FOOD_DATA_CSV, OUTPUT_DIR, PROCESSED_CGM_CSV_FILE
+from config import COMBINED_FOOD_DATA_CSV, DOWNLOADS_DIR, EXERCISE_CSV, PROCESSED_CGM_CSV_FILE
 from process_raw_food_data import get_combined_food_data
 from plot_increase_for_meals_with_similar_carbs import plot_glucose_increase_for_meals
-
 
 
 def main():
@@ -21,7 +20,7 @@ def main():
 
     food_df = pd.read_csv(food_csv_path)
     cgm_df = pd.read_csv(PROCESSED_CGM_CSV_FILE)
-    exercise_df = pd.read_csv(Path(__file__).resolve().parent.parent / 'data' / 'exercise.csv')
+    exercise_df = pd.read_csv(EXERCISE_CSV)
 
     food_df['Meal_Timestamp'] = pd.to_datetime(food_df['Meal_Timestamp'])
     cgm_df['Timestamp'] = pd.to_datetime(cgm_df['Timestamp'])
@@ -38,8 +37,7 @@ def main():
         print("没有找到符合条件的餐次")
         return
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = OUTPUT_DIR / '宫保鸡丁_餐后葡萄糖增量.png'
+    output_path = DOWNLOADS_DIR / '宫保鸡丁_餐后葡萄糖增量.png'
 
     summary_df = plot_glucose_increase_for_meals(
         target_meals=target_meals,

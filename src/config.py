@@ -3,8 +3,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 OUTPUT_DIR = PROJECT_ROOT / "output"
+DOWNLOADS_DIR = Path("/mnt/c/Users/weich/Downloads")
 
-COMBINED_FOOD_DATA_CSV = str(DATA_DIR / "combined_food_data.csv")
+COMBINED_FOOD_DATA_CSV = str(DOWNLOADS_DIR / "combined_food_data.csv")
 CGM_RAW_DATA_CSV_FILE_ALL = str(DATA_DIR / "Clarity_Export_Chen_Wei_2026-07-23_185008.csv")
 PROCESSED_CGM_CSV_FILE = str(DATA_DIR / "processed_cgm_glucose_data.csv")
 EXERCISE_CSV = str(DATA_DIR / "exercise.csv")
