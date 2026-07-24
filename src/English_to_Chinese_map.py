@@ -39,8 +39,8 @@ English_to_Chinese_map = {
     "mushroom": "蘑菇",
     "peas": "豌豆",
     "carrots": "胡萝卜",
-    "chicken nuggets": "鸡块",
-    "chicken nugget": "鸡块",
+    "chicken nuggets": "炸鸡块",
+    "chicken nugget": "炸鸡块",
     "beef": "牛肉",
     "swai": "巴沙鱼",
     "chicken breast": "鸡胸肉",
@@ -67,7 +67,11 @@ def to_Chinese_meal_name(food_name: str) -> str:
         return food_name
 
     text = food_name.lower()
-    for eng, chi in English_to_Chinese_map.items():
+    for eng, chi in sorted(
+        English_to_Chinese_map.items(),
+        key=lambda item: len(item[0]),
+        reverse=True
+    ):
         pattern = rf"\b{re.escape(eng.lower())}\b"
         text = re.sub(pattern, chi, text)
 
