@@ -109,6 +109,16 @@ def cgm_hourly_stats_and_plot(df: pd.DataFrame, date_start_end_list: list[tuple[
     ax.grid(True, linestyle=':', alpha=0.6)
     ax.legend(loc='upper right', fontsize=10)
 
+    # Add horizontal thresholds at 5.6 and 7.8 mmol/L (convert if plotting in mg/dL)
+    if unit == 'mmol/L':
+        thr1, thr2 = 5.6, 7.8
+    else:
+        thr1 = 5.6 / MG_DL_TO_MMOL_L
+        thr2 = 7.8 / MG_DL_TO_MMOL_L
+
+    ax.axhline(thr1, color='black', linestyle='--', linewidth=1)
+    ax.axhline(thr2, color='black', linestyle='--', linewidth=1)
+
     output_name = f'hourly_glucose_trend_{"_".join(stems)}.png'
     csv_name = f'hourly_glucose_trend_{"_".join(stems)}_{unit.replace('/', '-')}.csv'
     if all_stats:
