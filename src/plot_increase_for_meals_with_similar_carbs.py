@@ -15,10 +15,12 @@ setup_cjk_font()
 
 food_df = pd.read_csv(COMBINED_FOOD_DATA_CSV)
 cgm_df = pd.read_csv(PROCESSED_CGM_CSV_FILE)
+exercise_df = pd.read_csv('./data/exercise.csv')
 
 # Convert timestamps to datetime
 food_df['Meal_Timestamp'] = pd.to_datetime(food_df['Meal_Timestamp'])
 cgm_df['Timestamp'] = pd.to_datetime(cgm_df['Timestamp'])
+exercise_df['Timestamp'] = pd.to_datetime(exercise_df['Timestamp (YYYY-MM-DDThh:mm:ss)'])
 
 # ============================================================
 # 2. FILTER MEALS WITH 45–55g CARBS
@@ -94,22 +96,109 @@ markers = ['o', 's', '^', 'D', 'v', 'p']
 
 for i, meal in enumerate(meal_data):
     data = meal['post_meal_data']
+    meal_time = meal['meal_time']
     
     # Shorten label for legend readability
     short_food = meal['food'][:40] + '...' if len(meal['food']) > 40 else meal['food']
     label = f"{short_food} | 碳水 = {meal['carbs']:.0f}g"
-    
-    ax.plot(
-        data['hours_since_meal'], 
-        data['glucose_increase'], 
-        color=colors[i % len(colors)], 
-        marker=markers[i % len(markers)], 
-        markersize=3.5, 
-        linewidth=1.8, 
-        alpha=0.85, 
-        label=label,
-        markevery=3  # show marker every 3rd point to reduce clutter
+
+    # Determine first interruption in the 0-4h window: exercise or another meal
+    interruption_candidates = []
+    if not exercise_df.empty:
+        interruption_candidates.extend(
+            exercise_df.loc[
+                (exercise_df['Timestamp'] > meal_time) &
+                (exercise_df['Timestamp'] <= meal_time + pd.Timedelta(hours=4)),
+                'Timestamp'
+            ].tolist()
+        )
+    interruption_candidates.extend(
+        food_df.loc[
+            (food_df['Meal_Timestamp'] > meal_time) &
+            (food_df['Meal_Timestamp'] <= meal_time + pd.Timedelta(hours=4)),
+            'Meal_Timestamp'
+        ].tolist()
     )
+    interruption_time = min(interruption_candidates) if interruption_candidates else None
+
+    interruption_label = None
+    if interruption_time is not None:
+        if not exercise_df.empty and interruption_time in exercise_df['Timestamp'].values:
+            interruption_label = '运动'
+        elif interruption_time in food_df['Meal_Timestamp'].values:
+            interruption_label = '下一餐'
+        else:
+            interruption_label = '中断'
+
+        after_mask = data['Timestamp'] > interruption_time
+        if after_mask.any():
+            split_idx = after_mask[after_mask].index[0]
+            solid_data = data.loc[:split_idx]
+            dashed_data = data.loc[split_idx:]
+        else:
+            solid_data = data
+            dashed_data = data.iloc[0:0]
+
+        plotted_label = False
+
+        if not solid_data.empty:
+            ax.plot(
+                solid_data['hours_since_meal'],
+                solid_data['glucose_increase'],
+                color=colors[i % len(colors)],
+                marker=markers[i % len(markers)],
+                markersize=3.5,
+                linewidth=1.8,
+                alpha=0.85,
+                label=label,
+                markevery=3
+            )
+            plotted_label = True
+
+        if not dashed_data.empty:
+            ax.plot(
+                dashed_data['hours_since_meal'],
+                dashed_data['glucose_increase'],
+                color=colors[i % len(colors)],
+                marker=markers[i % len(markers)],
+                markersize=3.5,
+                linewidth=1.8,
+                linestyle='--',
+                alpha=0.85,
+                label=label if not plotted_label else None,
+                markevery=3
+            )
+
+            first_dashed = dashed_data.iloc[0]
+            ax.scatter(
+                first_dashed['hours_since_meal'],
+                first_dashed['glucose_increase'],
+                color=colors[i % len(colors)],
+                edgecolor='black',
+                zorder=3,
+                s=50
+            )
+            ax.annotate(
+                interruption_label,
+                xy=(first_dashed['hours_since_meal'], first_dashed['glucose_increase']),
+                xytext=(5, 5),
+                textcoords='offset points',
+                fontsize=10,
+                color=colors[i % len(colors)],
+                arrowprops=dict(arrowstyle='->', color=colors[i % len(colors)], lw=0.8)
+            )
+    else:
+        ax.plot(
+            data['hours_since_meal'], 
+            data['glucose_increase'], 
+            color=colors[i % len(colors)], 
+            marker=markers[i % len(markers)], 
+            markersize=3.5, 
+            linewidth=1.8, 
+            alpha=0.85, 
+            label=label,
+            markevery=3  # show marker every 3rd point to reduce clutter
+        )
 
 # Reference line at zero (pre-meal baseline)
 ax.axhline(y=0, color='gray', linestyle='--', linewidth=0.8, alpha=0.5)
