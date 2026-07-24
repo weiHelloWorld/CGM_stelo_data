@@ -7,6 +7,7 @@ OUTPUT_DIR = PROJECT_ROOT / "output"
 COMBINED_FOOD_DATA_CSV = str(DATA_DIR / "combined_food_data.csv")
 CGM_RAW_DATA_CSV_FILE_ALL = str(DATA_DIR / "Clarity_Export_Chen_Wei_2026-07-23_185008.csv")
 PROCESSED_CGM_CSV_FILE = str(DATA_DIR / "processed_cgm_glucose_data.csv")
+EXERCISE_CSV = str(DATA_DIR / "exercise.csv")
 
 MG_DL_TO_MMOL_L = 1 / 18.0182
 PERIOD_LIST = [
@@ -26,6 +27,7 @@ __all__ = [
     "COMBINED_FOOD_DATA_CSV",
     "CGM_RAW_DATA_CSV_FILE_ALL",
     "PROCESSED_CGM_CSV_FILE",
+    "EXERCISE_CSV",
     "MG_DL_TO_MMOL_L",
     "PERIOD_LIST",
     "OFFSET_LIST",

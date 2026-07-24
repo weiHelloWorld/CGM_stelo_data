@@ -6,8 +6,7 @@ from matplotlib.lines import Line2D
 from datetime import datetime, timedelta
 import re
 
-from process_raw_food_data import COMBINED_FOOD_DATA_CSV
-from process_raw_cgm_csv import PROCESSED_CGM_CSV_FILE
+from config import COMBINED_FOOD_DATA_CSV, EXERCISE_CSV, PROCESSED_CGM_CSV_FILE
 from English_to_Chinese_map import to_Chinese_meal_name
 
 
@@ -263,7 +262,7 @@ def main():
 
     food_df = pd.read_csv(COMBINED_FOOD_DATA_CSV)
     cgm_df = pd.read_csv(PROCESSED_CGM_CSV_FILE)
-    exercise_df = pd.read_csv('./data/exercise.csv')
+    exercise_df = pd.read_csv(EXERCISE_CSV)
 
     food_df['Meal_Timestamp'] = pd.to_datetime(food_df['Meal_Timestamp'])
     cgm_df['Timestamp'] = pd.to_datetime(cgm_df['Timestamp'])
