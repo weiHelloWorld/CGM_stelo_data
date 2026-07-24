@@ -134,8 +134,8 @@ ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 
 plt.tight_layout()
-plt.savefig('glucose_increase_45_55g_carbs.png', dpi=150, bbox_inches='tight')
-plt.show()
+plt.savefig('/mnt/c/Users/weich/Downloads/glucose_increase_45_55g_carbs.png', dpi=150, bbox_inches='tight')
+# plt.show()
 
 # ============================================================
 # 5. SUMMARY TABLE
