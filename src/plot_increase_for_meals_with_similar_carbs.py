@@ -207,8 +207,8 @@ ax.axhline(y=0, color='gray', linestyle='--', linewidth=0.8, alpha=0.5)
 ax.set_xlabel('餐后时间 (小时)', fontsize=13)
 ax.set_ylabel('餐后葡萄糖增量 (mmol/L)', fontsize=13)
 ax.set_title(
-    '餐后葡萄糖反应', 
-    fontsize=15
+    '碳水接近血糖曲线就接近吗？餐后血糖增量', 
+    fontsize=20
 )
 ax.set_xlim(0, 4)
 ax.set_xticks(np.arange(0, 4.5, 0.5))

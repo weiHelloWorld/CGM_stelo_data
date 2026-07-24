@@ -37,9 +37,9 @@ period_2_start, period_2_end = pd.to_datetime("2026-07-07"), pd.to_datetime(
 
 def assign_period(dt):
     if period_1_start <= dt <= period_1_end + pd.Timedelta(days=1):
-        return "Period 1 (2026-06-16 to 2026-07-01)"
+        return "之前"
     elif period_2_start <= dt <= period_2_end + pd.Timedelta(days=1):
-        return "Period 2 (2026-07-07 to 2026-07-22)"
+        return "之后"
     return None
 
 
@@ -55,7 +55,7 @@ X_COL = "4h Avg Increase (mmol/L)"
 
 # Meal Categories to Loop Through
 meal_categories = {
-    "All Meals": df_plots["餐次"].dropna().unique().tolist(),
+    "所有餐次": df_plots["餐次"].dropna().unique().tolist(),
     "早餐": ["早餐"],
     "午餐": ["午餐"],
     "晚餐": ["晚餐"],
@@ -64,8 +64,8 @@ meal_categories = {
 
 # Color Palette for Periods
 palette = {
-    "Period 1 (2026-06-16 to 2026-07-01)": "#1f77b4",  # Blue
-    "Period 2 (2026-07-07 to 2026-07-22)": "#ff7f0e",  # Orange
+    "之前": "#1f77b4",
+    "之后": "#ff7f0e",
 }
 
 x_min = df_plots[X_COL].min()
@@ -86,7 +86,7 @@ for title, categories in meal_categories.items():
     )
 
     if subset.empty:
-        print(f"No valid data points found for: {title}")
+        print(f"未找到有效数据点：{title}")
         continue
 
     # Main Joint Plot (Scatter only)
@@ -128,10 +128,16 @@ for title, categories in meal_categories.items():
 
     # Layout Customization
     g.fig.suptitle(
-        f"{title}: {X_COL} vs. {Y_COL}", y=1.02, fontsize=14, fontweight="bold"
+        f"{title}：4小时平均增量 vs 2小时峰值增量",
+        y=1.02,
+        fontsize=14,
+        fontweight="bold",
     )
     g.set_axis_labels(
-        f"{X_COL}", f"{Y_COL}", fontsize=11, fontweight="bold"
+        "4小时平均增量 (mmol/L)",
+        "2小时峰值增量 (mmol/L)",
+        fontsize=11,
+        fontweight="bold",
     )
     g.ax_joint.set_xlim(xlim)
     g.ax_joint.set_ylim(ylim)
