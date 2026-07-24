@@ -1,7 +1,7 @@
 import pandas as pd
 from datetime import datetime, timedelta
 
-COMBINED_FOOD_DATA_CSV = '/mnt/c/Users/weich/Downloads/combined_food_data.csv'
+from config import COMBINED_FOOD_DATA_CSV, DATA_DIR
 
 def int_to_time(t):
     if pd.isna(t):
@@ -15,8 +15,8 @@ def int_to_time(t):
 # STEP 1: Read both Excel files
 # ============================================================
 def get_combined_food_data():
-    df1 = pd.read_excel('./data/Food_track_202606.xlsx')
-    df2 = pd.read_excel('./data/Food_track_202607.xlsx')
+    df1 = pd.read_excel(DATA_DIR / 'Food_track_202606.xlsx')
+    df2 = pd.read_excel(DATA_DIR / 'Food_track_202607.xlsx')
 
     # ============================================================
     # STEP 2: Clean June data

@@ -2,9 +2,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-MG_DL_TO_MMOL_L = 1 / 18.0182
-
 from analyze_cgm_2607 import GLOCOSE_RESPONSE_OUTPUT_CSV
+from config import MG_DL_TO_MMOL_L
 from helper import setup_cjk_font
 setup_cjk_font()
 

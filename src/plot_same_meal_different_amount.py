@@ -3,8 +3,8 @@ from pathlib import Path
 import pandas as pd
 
 from helper import setup_cjk_font
-from process_raw_cgm_csv import PROCESSED_CGM_CSV_FILE
-from process_raw_food_data import COMBINED_FOOD_DATA_CSV, get_combined_food_data
+from config import COMBINED_FOOD_DATA_CSV, OUTPUT_DIR, PROCESSED_CGM_CSV_FILE
+from process_raw_food_data import get_combined_food_data
 from plot_increase_for_meals_with_similar_carbs import plot_glucose_increase_for_meals
 
 
@@ -20,8 +20,8 @@ def main():
         print(f"生成组合餐食数据: {food_csv_path}")
 
     food_df = pd.read_csv(food_csv_path)
-    cgm_df = pd.read_csv(DATA_DIR / 'processed_cgm_glucose_data.csv')
-    exercise_df = pd.read_csv(DATA_DIR / 'exercise.csv')
+    cgm_df = pd.read_csv(PROCESSED_CGM_CSV_FILE)
+    exercise_df = pd.read_csv(Path(__file__).resolve().parent.parent / 'data' / 'exercise.csv')
 
     food_df['Meal_Timestamp'] = pd.to_datetime(food_df['Meal_Timestamp'])
     cgm_df['Timestamp'] = pd.to_datetime(cgm_df['Timestamp'])

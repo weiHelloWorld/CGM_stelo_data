@@ -13,11 +13,7 @@ from matplotlib import font_manager
 from matplotlib.font_manager import FontProperties
 from helper import setup_cjk_font
 
-from process_raw_cgm_csv import PROCESSED_CGM_CSV_FILE
-from process_raw_food_data import COMBINED_FOOD_DATA_CSV
-
-DEFAULT_CGM_CSV = PROCESSED_CGM_CSV_FILE
-GLOCOSE_RESPONSE_OUTPUT_CSV = "/mnt/c/Users/weich/Downloads/glucose_response_analysis.csv"
+from config import COMBINED_FOOD_DATA_CSV, DEFAULT_CGM_CSV, GLOCOSE_RESPONSE_OUTPUT_CSV
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Analyze CGM glucose response by meal.")

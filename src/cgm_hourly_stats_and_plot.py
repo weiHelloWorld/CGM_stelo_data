@@ -4,9 +4,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 from helper import setup_cjk_font
-from process_raw_cgm_csv import MG_DL_TO_MMOL_L, PERIOD_LIST, PROCESSED_CGM_CSV_FILE
-
-EXCLUDE_DATES = ['2026-06-27']
+from config import EXCLUDE_DATES, MG_DL_TO_MMOL_L, PERIOD_LIST, PROCESSED_CGM_CSV_FILE
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Plot CGM hourly glucose trends.')

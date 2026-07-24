@@ -1,14 +1,6 @@
 import pandas as pd
 
-CGM_RAW_DATA_CSV_FILE_ALL = './data/Clarity_Export_Chen_Wei_2026-07-23_185008.csv'
-PROCESSED_CGM_CSV_FILE = './data/processed_cgm_glucose_data.csv'
-
-MG_DL_TO_MMOL_L = 1 / 18.0182
-PERIOD_LIST = [
-    ('2026-06-16', '2026-07-02'), 
-    ('2026-07-07', '2026-07-23')
-]
-OFFSET_LIST = [-12, -7]  # offset based on fingerstick measurements, to align with CGM readings
+from config import CGM_RAW_DATA_CSV_FILE_ALL, MG_DL_TO_MMOL_L, OFFSET_LIST, PERIOD_LIST, PROCESSED_CGM_CSV_FILE
 
 def process_cgm_glucose_data(csv_path, period_list, offset_list):
     """do following:
