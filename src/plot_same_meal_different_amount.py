@@ -61,3 +61,7 @@ if __name__ == '__main__':
         ['宫保鸡丁', 'kung pao chicken'],
         title='宫保鸡丁餐后血糖增量',
     )
+    plot_for_meals_containing_keywords(
+        ['辛拉面'],
+        title='辛拉面餐后血糖增量',
+    )
