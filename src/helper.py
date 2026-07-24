@@ -46,6 +46,7 @@ def plot_glucose_increase_for_meals(
     cgm_df,
     exercise_df,
     output_path,
+    title='碳水接近血糖曲线就接近吗？餐后血糖增量',
 ):
     """Plot meal glucose increase and return a summary table for the target meals."""
     meal_data = []
@@ -119,7 +120,13 @@ def plot_glucose_increase_for_meals(
         food_name_cn = to_Chinese_meal_name(meal['food'])
         short_food = food_name_cn[:40] + '...' if len(food_name_cn) > 40 else food_name_cn
 
-        label = f"{short_food} | 碳水 = {meal['carbs']:.0f}g"
+        carbs_value = meal['carbs']
+        if pd.isna(carbs_value):
+            carbs_display = '未知'
+        else:
+            carbs_display = f"{carbs_value:.0f}g"
+
+        label = f"{short_food} | 碳水 = {carbs_display}"
 
         interruption_candidates = []
         if not exercise_df.empty:
@@ -212,7 +219,7 @@ def plot_glucose_increase_for_meals(
     ax.set_xlabel('餐后时间 (小时)', fontsize=13)
     ax.set_ylabel('餐后葡萄糖增量 (mmol/L)', fontsize=13)
     ax.set_title(
-        '碳水接近血糖曲线就接近吗？餐后血糖增量',
+        title,
         fontsize=20
     )
     ax.set_xlim(0, 4)
