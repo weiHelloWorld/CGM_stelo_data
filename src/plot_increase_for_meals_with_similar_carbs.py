@@ -94,6 +94,13 @@ fig, ax = plt.subplots(figsize=(14, 8))
 colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c']
 markers = ['o', 's', '^', 'D', 'v', 'p']
 
+interruption_marker_map = {
+    '运动': 'o',
+    '下一餐': 's',
+    '中断': 'X'
+}
+interruption_legend_added = set()
+
 for i, meal in enumerate(meal_data):
     data = meal['post_meal_data']
     meal_time = meal['meal_time']
@@ -146,12 +153,9 @@ for i, meal in enumerate(meal_data):
                 solid_data['hours_since_meal'],
                 solid_data['glucose_increase'],
                 color=colors[i % len(colors)],
-                marker=markers[i % len(markers)],
-                markersize=3.5,
                 linewidth=1.8,
                 alpha=0.85,
                 label=label,
-                markevery=3
             )
             plotted_label = True
 
@@ -160,44 +164,36 @@ for i, meal in enumerate(meal_data):
                 dashed_data['hours_since_meal'],
                 dashed_data['glucose_increase'],
                 color=colors[i % len(colors)],
-                marker=markers[i % len(markers)],
-                markersize=3.5,
                 linewidth=1.8,
                 linestyle='--',
                 alpha=0.85,
                 label=label if not plotted_label else None,
-                markevery=3
             )
 
             first_dashed = dashed_data.iloc[0]
+            marker = interruption_marker_map.get(interruption_label, 'X')
+            scatter_label = interruption_label if interruption_label not in interruption_legend_added else None
+            if scatter_label is not None:
+                interruption_legend_added.add(interruption_label)
+
             ax.scatter(
                 first_dashed['hours_since_meal'],
                 first_dashed['glucose_increase'],
                 color=colors[i % len(colors)],
                 edgecolor='black',
+                marker=marker,
                 zorder=3,
-                s=50
-            )
-            ax.annotate(
-                interruption_label,
-                xy=(first_dashed['hours_since_meal'], first_dashed['glucose_increase']),
-                xytext=(5, 5),
-                textcoords='offset points',
-                fontsize=10,
-                color=colors[i % len(colors)],
-                arrowprops=dict(arrowstyle='->', color=colors[i % len(colors)], lw=0.8)
+                s=80,
+                label=scatter_label
             )
     else:
         ax.plot(
             data['hours_since_meal'], 
             data['glucose_increase'], 
             color=colors[i % len(colors)], 
-            marker=markers[i % len(markers)], 
-            markersize=3.5, 
             linewidth=1.8, 
             alpha=0.85, 
             label=label,
-            markevery=3  # show marker every 3rd point to reduce clutter
         )
 
 # Reference line at zero (pre-meal baseline)
