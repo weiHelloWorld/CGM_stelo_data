@@ -1,11 +1,20 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import helper
+
+helper.setup_cjk_font()
 
 from config import (
     COMBINED_FOOD_DATA_CSV,
     CGM_RAW_DATA_CSV_FILE_ALL,
     EXERCISE_CSV,
+    MG_DL_TO_MMOL_L,
 )
+
+EXERCISE_TYPE_LABELS = {
+    "swim": "游泳",
+    "resistance": "力量训练",
+}
 
 
 def load_data(exercise_path, glucose_path, food_path):
@@ -24,7 +33,7 @@ def load_data(exercise_path, glucose_path, food_path):
     gl["glucose"] = pd.to_numeric(
         gl["Glucose Value (mg/dL)"],
         errors="coerce"
-    )
+    ) * MG_DL_TO_MMOL_L
 
     gl = (
         gl
@@ -64,10 +73,11 @@ def filter_sessions(exercise_df, exercise_types):
 
 def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window_hours=2):
     if sessions.empty:
+        subtitle = EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)
         ax.text(
             0.5,
             0.5,
-            f"No sessions for {exercise_type}",
+            f"未找到 {subtitle} 训练",
             ha="center",
             va="center",
             fontsize=12,
@@ -110,7 +120,7 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
             linestyle="-",
             linewidth=1.2,
             alpha=0.55,
-            label=session_start.strftime("%b %-d")
+            label=f"{session_start.month}月{session_start.day}日"
         )
 
     ax.axvline(
@@ -120,11 +130,12 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
     )
 
     ax.set_xlim(0, window_hours * 60)
-    ax.set_xlabel("Minutes since exercise start")
-    ax.set_ylabel("Glucose (mg/dL)")
-    ax.set_title(f"Glucose 0–{window_hours} Hours After {exercise_type.title()}")
+    ax.set_xlabel("运动开始后分钟数")
+    ax.set_ylabel("血糖 (mmol/L)")
+    subtitle = EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)
+    ax.set_title(f"运动后 0–{window_hours} 小时的血糖变化 ({subtitle})")
     ax.grid(True, alpha=0.25)
-    ax.legend(title="Session date", ncol=2)
+    ax.legend(title="日期", ncol=2)
 
 
 if __name__ == "__main__":
