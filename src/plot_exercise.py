@@ -71,7 +71,7 @@ def filter_sessions(exercise_df, exercise_types):
     ].copy()
 
 
-def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window_hours=2):
+def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window_hours=1.5):
     if sessions.empty:
         subtitle = EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)
         ax.text(
@@ -85,7 +85,7 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
         ax.set_axis_off()
         return
 
-    for _, row in sessions.iterrows():
+    for idx, (_, row) in enumerate(sessions.iterrows(), start=1):
         session_start = row["start"]
         session_end = session_start + pd.Timedelta(hours=window_hours)
 
@@ -120,7 +120,6 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
             linestyle="-",
             linewidth=1.2,
             alpha=0.55,
-            label=f"{session_start.month}月{session_start.day}日"
         )
 
     ax.axvline(
@@ -135,7 +134,7 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
     subtitle = EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)
     ax.set_title(f"运动后 0–{window_hours} 小时的血糖变化 ({subtitle})")
     ax.grid(True, alpha=0.25)
-    ax.legend(title="日期", ncol=2)
+    # ax.legend(ncol=2)
 
 
 if __name__ == "__main__":
@@ -160,7 +159,7 @@ if __name__ == "__main__":
             gl,
             food_times,
             exercise_type,
-            window_hours=2,
+            window_hours=1.5,
         )
 
     plt.tight_layout()
