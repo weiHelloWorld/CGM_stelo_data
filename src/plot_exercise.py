@@ -62,12 +62,18 @@ def filter_sessions(exercise_df, exercise_types):
     ].copy()
 
 
-def plot_exercise_sessions(sessions, glucose, food_times, exercise_types, window_hours=2):
+def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window_hours=2):
     if sessions.empty:
-        print(f"No sessions found for: {', '.join(exercise_types)}")
+        ax.text(
+            0.5,
+            0.5,
+            f"No sessions for {exercise_type}",
+            ha="center",
+            va="center",
+            fontsize=12,
+        )
+        ax.set_axis_off()
         return
-
-    fig, ax = plt.subplots(figsize=(10, 6))
 
     for _, row in sessions.iterrows():
         session_start = row["start"]
@@ -116,15 +122,9 @@ def plot_exercise_sessions(sessions, glucose, food_times, exercise_types, window
     ax.set_xlim(0, window_hours * 60)
     ax.set_xlabel("Minutes since exercise start")
     ax.set_ylabel("Glucose (mg/dL)")
-    ax.set_title(
-        f"Glucose 0–{window_hours} Hours After "
-        f"{', '.join(exercise_types).title()}"
-    )
+    ax.set_title(f"Glucose 0–{window_hours} Hours After {exercise_type.title()}")
     ax.grid(True, alpha=0.25)
     ax.legend(title="Session date", ncol=2)
-
-    plt.tight_layout()
-    plt.show()
 
 
 if __name__ == "__main__":
@@ -138,12 +138,19 @@ if __name__ == "__main__":
         food_path,
     )
 
-    for exercise_type in ["swim", "resistance"]:
+    exercise_types = ["swim", "resistance"]
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
+
+    for ax, exercise_type in zip(axes, exercise_types):
         sessions = filter_sessions(ex, [exercise_type])
-        plot_exercise_sessions(
+        plot_exercise_on_ax(
+            ax,
             sessions,
             gl,
             food_times,
-            [exercise_type],
+            exercise_type,
             window_hours=2,
         )
+
+    plt.tight_layout()
+    plt.show()
