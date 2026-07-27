@@ -6,8 +6,8 @@ helper.setup_cjk_font()
 
 from config import (
     COMBINED_FOOD_DATA_CSV,
-    CGM_RAW_DATA_CSV_FILE_ALL,
-    EXERCISE_CSV,
+    PROCESSED_CGM_CSV_FILE,
+            EXERCISE_CSV,
     MG_DL_TO_MMOL_L,
 )
 
@@ -139,7 +139,7 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
 
 if __name__ == "__main__":
     exercise_path = EXERCISE_CSV
-    glucose_path = CGM_RAW_DATA_CSV_FILE_ALL
+    glucose_path = PROCESSED_CGM_CSV_FILE
     food_path = COMBINED_FOOD_DATA_CSV
 
     ex, gl, food_times = load_data(
