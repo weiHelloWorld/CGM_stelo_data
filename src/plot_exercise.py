@@ -1,5 +1,7 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.stats import pearsonr
 import helper
 
 helper.setup_cjk_font()
@@ -8,7 +10,7 @@ from config import (
     COMBINED_FOOD_DATA_CSV,
     PROCESSED_CGM_CSV_FILE,
             EXERCISE_CSV,
-    MG_DL_TO_MMOL_L,
+    MG_DL_TO_MMOL_L, DOWNLOADS_DIR
 )
 
 EXERCISE_TYPE_LABELS = {
@@ -72,6 +74,8 @@ def filter_sessions(exercise_df, exercise_types):
 
 
 def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window_hours=1.5):
+    metrics = []
+
     if sessions.empty:
         subtitle = EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)
         ax.text(
@@ -83,9 +87,9 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
             fontsize=12,
         )
         ax.set_axis_off()
-        return
+        return metrics
 
-    for idx, (_, row) in enumerate(sessions.iterrows(), start=1):
+    for _, row in sessions.iterrows():
         session_start = row["start"]
         session_end = session_start + pd.Timedelta(hours=window_hours)
 
@@ -110,9 +114,19 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
         if plot_glucose.empty:
             continue
 
+        plot_glucose = plot_glucose.sort_values("timestamp")
         plot_glucose["minutes"] = (
             plot_glucose["timestamp"] - session_start
         ).dt.total_seconds() / 60
+
+        starting_glucose = float(plot_glucose.iloc[0]["glucose"])
+        max_decrease = float(starting_glucose - plot_glucose["glucose"].min())
+        metrics.append({
+            "exercise_type": exercise_type,
+            "starting_glucose": starting_glucose,
+            "max_decrease": max(0.0, max_decrease),
+            "date": session_start,
+        })
 
         ax.plot(
             plot_glucose["minutes"],
@@ -134,7 +148,7 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
     subtitle = EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)
     ax.set_title(f"运动后 0–{window_hours} 小时的血糖变化 ({subtitle})")
     ax.grid(True, alpha=0.25)
-    # ax.legend(ncol=2)
+    return metrics
 
 
 if __name__ == "__main__":
@@ -149,11 +163,12 @@ if __name__ == "__main__":
     )
 
     exercise_types = ["swim", "resistance"]
-    fig, axes = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(20, 6), sharey=True)
+    all_metrics = []
 
     for ax, exercise_type in zip(axes, exercise_types):
         sessions = filter_sessions(ex, [exercise_type])
-        plot_exercise_on_ax(
+        metrics = plot_exercise_on_ax(
             ax,
             sessions,
             gl,
@@ -161,6 +176,64 @@ if __name__ == "__main__":
             exercise_type,
             window_hours=1.5,
         )
+        all_metrics.extend(metrics)
 
-    plt.tight_layout()
-    plt.show()
+    scatter_fig, scatter_axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+    scatter_fig.suptitle("Correlation between max_decrease and starting_glucose")
+
+    for scatter_ax, exercise_type in zip(scatter_axes, exercise_types):
+        subset_metrics = [m for m in all_metrics if m["exercise_type"] == exercise_type]
+        if subset_metrics:
+            starting_glucose = [m["starting_glucose"] for m in subset_metrics]
+            max_decrease = [m["max_decrease"] for m in subset_metrics]
+            dates = [m["date"] for m in subset_metrics]
+            scatter_ax.scatter(
+                starting_glucose,
+                max_decrease,
+                alpha=0.7,
+                s=45,
+                color="C0" if exercise_type == "swim" else "C1",
+            )
+            scatter_ax.set_xlabel("starting_glucose")
+            scatter_ax.set_ylabel("max_decrease")
+
+            for x, y, date_value in zip(starting_glucose, max_decrease, dates):
+                scatter_ax.annotate(
+                    date_value.strftime("%Y-%m-%d"),
+                    (x, y),
+                    xytext=(4, 4),
+                    textcoords="offset points",
+                    fontsize=8,
+                    alpha=0.8,
+                )
+
+            corr = pd.Series(starting_glucose).corr(pd.Series(max_decrease))
+            corr_stat, p_value = pearsonr(starting_glucose, max_decrease)
+            scatter_ax.set_title(
+                f"{EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)}\n"
+                f"corr = {corr_stat:.2f}, p = {p_value:.3g}"
+            )
+        else:
+            scatter_ax.text(
+                0.5,
+                0.5,
+                f"没有 {EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)} 的数据",
+                ha="center",
+                va="center",
+                fontsize=12,
+            )
+            scatter_ax.set_axis_off()
+
+        scatter_ax.grid(True, alpha=0.2)
+
+    output_dir = DOWNLOADS_DIR
+    os.makedirs(output_dir, exist_ok=True)
+
+    fig_path = os.path.join(output_dir, "exercise_glucose_overview.png")
+    scatter_path = os.path.join(output_dir, "exercise_correlation_scatter.png")
+
+    fig.savefig(fig_path, dpi=300, bbox_inches="tight")
+    scatter_fig.tight_layout(rect=[0, 0, 1, 0.96])
+    scatter_fig.savefig(scatter_path, dpi=300, bbox_inches="tight")
+
+
