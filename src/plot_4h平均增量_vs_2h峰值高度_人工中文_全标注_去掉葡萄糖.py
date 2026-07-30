@@ -88,115 +88,40 @@ def translate_food(text):
 
 
 def _place_labels(ax, label_df, font_prop, x_col="4h平均增量_mg_dL", y_col="2h峰值高度_mg_dL"):
-    """Greedy non-overlap placement that also avoids covering other scatter points."""
+    """Simple score-based label placement: maximize distance from other labels, minimize distance from data point."""
     data = label_df.copy().reset_index(drop=True)
-    n = len(data)
-    if n == 0:
+    if len(data) == 0:
         return
 
-    fig = ax.figure
-    fig.canvas.draw()
-    renderer = fig.canvas.get_renderer()
+    candidates = [
+        (0.5, 0.9), (0.9, -1.0), (-0.9, 1.0), (-0.9, -1.0),
+        (1.4, 0.2), (-1.4, 0.2), (0.2, 1.7), (0.2, -1.7),
+        (1.8, 1.2), (-1.8, 1.2), (1.8, -1.2), (-1.8, -1.2),
+        (2.3, 0.0), (-2.3, 0.0), (0.0, 2.4), (0.0, -2.4),
+        (2.8, 1.3), (-2.8, 1.3), (2.8, -1.3), (-2.8, -1.3),
+        (3.2, 0.8), (-3.2, 0.8), (3.2, -0.8), (-3.2, -0.8),
+        (3.8, 0.0), (-3.8, 0.0), (0.0, 3.2), (0.0, -3.2),
+        (4.5, 1.5), (-4.5, 1.5), (4.5, -1.5), (-4.5, -1.5),
+        (5.5, 0.0), (-5.5, 0.0), (0.0, 5.5), (0.0, -5.5),
+    ]
+    placed = []  # (tx, ty) in data coords
 
-    # --- 1. Collect ALL scatter points in display (pixel) coordinates ---
-    all_points_display = []
-    for collection in ax.collections:
-        if hasattr(collection, 'get_offsets'):
-            for pt in collection.get_offsets():
-                all_points_display.append(ax.transData.transform(pt))
-    all_points_display = np.array(all_points_display)
-
-    # --- 2. Generate candidate offsets (points) ---
-    # Denser rings close to the point, sparser further out
-    candidates = []
-    np.random.seed(42)
-    radii = [25, 40, 60, 85, 115, 150, 200, 260, 330, 420, 530, 660, 820, 1000]
-    for r in radii:
-        n_angles = max(16, int(2 * np.pi * r / 12))
-        angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
-        angles += np.random.uniform(0, 2 * np.pi / n_angles, size=len(angles))  # jitter
-        for a in angles:
-            candidates.append((r * np.cos(a), r * np.sin(a)))
-
-    # --- 3. Pre-measure every label in display pixels ---
-    label_sizes = []
-    probes = []
     for _, row in data.iterrows():
-        label = shorten_label(row["食物_中文"], 50)
-        probe = ax.text(0.5, 0.5, label, fontsize=10, fontproperties=font_prop,
-                        ha="center", va="center",
-                        bbox=dict(boxstyle="round,pad=0.12", fc="white", alpha=0.85, ec="none"),
-                        transform=ax.transAxes, visible=False)
-        probes.append(probe)
-
-    fig.canvas.draw()
-    for probe in probes:
-        br = probe.get_window_extent(renderer)
-        label_sizes.append((br.width, br.height))
-        probe.remove()
-
-    # --- 4. Greedy placement ---
-    placed_bboxes = []   # (x0, y0, x1, y1) in display pixels
-    final_labels = []    # (label, x_data, y_data, ox_pt, oy_pt)
-
-    for (_, row), (w, h) in zip(data.iterrows(), label_sizes):
         x, y = row[x_col], row[y_col]
-        label = shorten_label(row["食物_中文"], 50)
-        px, py = ax.transData.transform((x, y))   # data point in display pixels
-
-        found = False
-        for ox_pt, oy_pt in candidates:
-            # Convert offset points -> display pixels
-            cx = px + ox_pt * fig.dpi / 72.0
-            cy = py + oy_pt * fig.dpi / 72.0
-            x0, y0 = cx - w / 2, cy - h / 2
-            x1, y1 = cx + w / 2, cy + h / 2
-
-            pad_label = 4     # min space between two labels
-            pad_point = 10    # min space between label and any scatter point
-            pad_own   = 16    # extra clearance around the label's own data point
-
-            # A. Don't cover its own point
-            if (x0 - pad_own) < px < (x1 + pad_own) and (y0 - pad_own) < py < (y1 + pad_own):
-                continue
-
-            # B. Don't overlap already-placed labels
-            overlap = False
-            for pb in placed_bboxes:
-                if (x0 - pad_label) < pb[2] and (x1 + pad_label) > pb[0] and \
-                   (y0 - pad_label) < pb[3] and (y1 + pad_label) > pb[1]:
-                    overlap = True
-                    break
-            if overlap:
-                continue
-
-            # C. Don't overlap OTHER scatter points
-            pt_hit = False
-            for pdx, pdy in all_points_display:
-                if abs(pdx - px) < 2 and abs(pdy - py) < 2:
-                    continue  # skip own point
-                if (x0 - pad_point) < pdx < (x1 + pad_point) and (y0 - pad_point) < pdy < (y1 + pad_point):
-                    pt_hit = True
-                    break
-            if pt_hit:
-                continue
-
-            # Accept
-            placed_bboxes.append((x0, y0, x1, y1))
-            final_labels.append((label, x, y, ox_pt, oy_pt))
-            found = True
-            break
-
-        if not found:
-            # Fallback: shove it far to the right so it doesn't block the cloud
-            final_labels.append((label, x, y, 400, 0))
-
-    # --- 5. Draw ---
-    for label, x, y, ox, oy in final_labels:
-        ax.annotate(label, xy=(x, y),
-                    xytext=(ox, oy), textcoords="offset points",
+        label = shorten_label(row["食物"], 50)
+        best, best_score = None, -float("inf")
+        for dx, dy in candidates:
+            tx, ty = x + dx, y + dy
+            min_dist = min([((tx - px) ** 2 + ((ty - py) * 0.9) ** 2) ** 0.5 for px, py in placed], default=99)
+            penalty = ((dx ** 2 + dy ** 2) ** 0.5) * 0.12
+            score = min_dist - penalty
+            if score > best_score:
+                best_score, best = score, (tx, ty, dx, dy)
+        tx, ty, dx, dy = best
+        placed.append((tx, ty))
+        ax.annotate(label, xy=(x, y), xytext=(tx, ty), textcoords="data",
                     fontsize=10, fontproperties=font_prop,
-                    ha="center", va="center",
+                    ha="left" if dx >= 0 else "right", va="center",
                     arrowprops=dict(arrowstyle="-", lw=0.6, alpha=0.45, color="gray"),
                     bbox=dict(boxstyle="round,pad=0.12", fc="white", alpha=0.85, ec="none"))
 
@@ -228,8 +153,7 @@ for i, meal in meals.iterrows():
 
     records.append({
         "timestamp": meal_time,
-        "食物": food,
-        "食物_中文": translate_food(food),
+        "食物": translate_food(food),
         "2h峰值高度_mg_dL": m2["peak_inc"],
         "2h峰值可能污染": contam_2h_peak,
         "4h平均增量_mg_dL": m4["avg_inc"],
@@ -254,6 +178,9 @@ fig, ax = plt.subplots(figsize=(18, 13))
 ax.scatter(cat_clean["4h平均增量_mg_dL"], cat_clean["2h峰值高度_mg_dL"], marker="o", s=55, label=localize("未污染", "Clean"))
 ax.scatter(cat_avg_only["4h平均增量_mg_dL"], cat_avg_only["2h峰值高度_mg_dL"], marker="s", s=55, label=localize("只污染 4h 平均增量", "4h avg contaminated"))
 
+# Lock layout BEFORE label placement so display-pixel coordinates are final
+plt.tight_layout()
+fig.canvas.draw()
 _place_labels(ax, label_df, font_prop)
 
 ax.set_xlabel(localize(f"4h 平均增量（{UNIT}）", f"4h Avg Increase ({UNIT})"), fontproperties=font_prop, fontsize=20)
@@ -265,6 +192,5 @@ for text in legend.get_texts():
 for label in ax.get_xticklabels() + ax.get_yticklabels():
     label.set_fontproperties(font_prop)
 ax.grid(True, alpha=0.25)
-plt.tight_layout()
 plt.savefig(out_png, dpi=240, bbox_inches="tight")
 # plt.show()
