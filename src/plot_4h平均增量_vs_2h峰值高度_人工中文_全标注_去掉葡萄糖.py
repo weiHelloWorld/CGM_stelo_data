@@ -88,110 +88,117 @@ def translate_food(text):
 
 
 def _place_labels(ax, label_df, font_prop, x_col="4h平均增量_mg_dL", y_col="2h峰值高度_mg_dL"):
-    """Place labels with force-directed overlap removal, keeping them off data points."""
-    data = label_df.copy().sort_values("标签优先级", ascending=False).reset_index(drop=True)
+    """Greedy non-overlap placement that also avoids covering other scatter points."""
+    data = label_df.copy().reset_index(drop=True)
     n = len(data)
     if n == 0:
         return
 
-    # --- 1. Initial radial spread ---
-    np.random.seed(42)
-    angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
-    np.random.shuffle(angles)
-    radii = np.linspace(35, 60, n)
-    offsets = np.column_stack([radii * np.cos(angles), radii * np.sin(angles)])  # shape (n, 2) in offset points
-
-    # --- 2. Create annotations at initial positions ---
-    anns = []
-    for i, (_, row) in enumerate(data.iterrows()):
-        x, y = row[x_col], row[y_col]
-        label = shorten_label(row["食物_中文"], 50)
-        ann = ax.annotate(label, xy=(x, y), xytext=(offsets[i, 0], offsets[i, 1]),
-                          textcoords="offset points",
-                          fontsize=11, fontproperties=font_prop,
-                          ha="center", va="center",
-                          bbox=dict(boxstyle="round,pad=0.14", fc="white", alpha=0.78, ec="none"))
-        anns.append(ann)
-
-    # --- 3. Draw to get real pixel extents ---
     fig = ax.figure
     fig.canvas.draw()
     renderer = fig.canvas.get_renderer()
 
-    # Get display-coord centres of each data point (pixels)
-    data_px = np.array([ax.transData.transform((row[x_col], row[y_col])) for _, row in data.iterrows()])
+    # --- 1. Collect ALL scatter points in display (pixel) coordinates ---
+    all_points_display = []
+    for collection in ax.collections:
+        if hasattr(collection, 'get_offsets'):
+            for pt in collection.get_offsets():
+                all_points_display.append(ax.transData.transform(pt))
+    all_points_display = np.array(all_points_display)
 
-    def get_bboxes():
-        """Return array of [[x0, y0, x1, y1], ...] in display pixel coords."""
-        boxes = np.empty((n, 4))
-        for i, ann in enumerate(anns):
-            r = ann.get_window_extent(renderer)
-            boxes[i] = [r.x0, r.y0, r.x1, r.y1]
-        return boxes
+    # --- 2. Generate candidate offsets (points) ---
+    # Denser rings close to the point, sparser further out
+    candidates = []
+    np.random.seed(42)
+    radii = [25, 40, 60, 85, 115, 150, 200, 260, 330, 420, 530, 660, 820, 1000]
+    for r in radii:
+        n_angles = max(16, int(2 * np.pi * r / 12))
+        angles = np.linspace(0, 2 * np.pi, n_angles, endpoint=False)
+        angles += np.random.uniform(0, 2 * np.pi / n_angles, size=len(angles))  # jitter
+        for a in angles:
+            candidates.append((r * np.cos(a), r * np.sin(a)))
 
-    # --- 4. Force-directed iterations ---
-    step = 8
-    for _ in range(400):
-        bboxes = get_bboxes()
-        centres = np.column_stack([(bboxes[:, 0] + bboxes[:, 2]) / 2,
-                                    (bboxes[:, 1] + bboxes[:, 3]) / 2])
-        w2 = (bboxes[:, 2] - bboxes[:, 0]) / 2  # half-widths
-        h2 = (bboxes[:, 3] - bboxes[:, 1]) / 2  # half-heights
+    # --- 3. Pre-measure every label in display pixels ---
+    label_sizes = []
+    probes = []
+    for _, row in data.iterrows():
+        label = shorten_label(row["食物_中文"], 50)
+        probe = ax.text(0.5, 0.5, label, fontsize=10, fontproperties=font_prop,
+                        ha="center", va="center",
+                        bbox=dict(boxstyle="round,pad=0.12", fc="white", alpha=0.85, ec="none"),
+                        transform=ax.transAxes, visible=False)
+        probes.append(probe)
 
-        forces = np.zeros((n, 2))
-        moved = False
+    fig.canvas.draw()
+    for probe in probes:
+        br = probe.get_window_extent(renderer)
+        label_sizes.append((br.width, br.height))
+        probe.remove()
 
-        for i in range(n):
-            # --- repulsion from other labels ---
-            dx_l = centres[:, 0] - centres[i, 0]
-            dy_l = centres[:, 1] - centres[i, 1]
-            dist_l = np.sqrt(dx_l ** 2 + dy_l ** 2)
-            overlap_x = (w2[i] + w2) - np.abs(dx_l)
-            overlap_y = (h2[i] + h2) - np.abs(dy_l)
-            overlapping = (overlap_x > 0) & (overlap_y > 0) & (dist_l > 0.1)
-            if overlapping.any():
-                dx = dx_l[overlapping]
-                dy = dy_l[overlapping]
-                d = np.maximum(np.sqrt(dx ** 2 + dy ** 2), 0.1)
-                forces[i] -= np.array([np.sum(dx / d), np.sum(dy / d)])
-                moved = True
+    # --- 4. Greedy placement ---
+    placed_bboxes = []   # (x0, y0, x1, y1) in display pixels
+    final_labels = []    # (label, x_data, y_data, ox_pt, oy_pt)
 
-            # --- attraction back toward own data point (medium spring) ---
-            dp = centres[i] - data_px[i]
-            dist_p = np.sqrt(dp[0] ** 2 + dp[1] ** 2)
-            if dist_p > 5:
-                forces[i] -= 0.01 * dp  # gentle pull back toward data point
-
-        if not moved:
-            break
-
-        # Apply forces as pixel offsets, then convert back to offset points
-        for i in range(n):
-            # Get current offset in display pixels
-            old_off_px = centres[i] - data_px[i]
-            new_off_px = old_off_px + step * forces[i]
-            # Clamp to avoid labels flying off screen
-            new_off_px = np.clip(new_off_px, -800, 800)
-            # Convert display pixels → offset points
-            dpi_scale = fig.dpi / 72.0
-            new_off_pt = new_off_px / dpi_scale
-            offsets[i] = new_off_pt
-            # Update annotation position
-            anns[i].xyann = (new_off_pt[0], new_off_pt[1])
-
-    # --- 5. Remove old and re-create with arrows ---
-    for ann in anns:
-        ann.remove()
-    for i, (_, row) in enumerate(data.iterrows()):
+    for (_, row), (w, h) in zip(data.iterrows(), label_sizes):
         x, y = row[x_col], row[y_col]
         label = shorten_label(row["食物_中文"], 50)
-        ox, oy = offsets[i]
+        px, py = ax.transData.transform((x, y))   # data point in display pixels
+
+        found = False
+        for ox_pt, oy_pt in candidates:
+            # Convert offset points -> display pixels
+            cx = px + ox_pt * fig.dpi / 72.0
+            cy = py + oy_pt * fig.dpi / 72.0
+            x0, y0 = cx - w / 2, cy - h / 2
+            x1, y1 = cx + w / 2, cy + h / 2
+
+            pad_label = 4     # min space between two labels
+            pad_point = 10    # min space between label and any scatter point
+            pad_own   = 16    # extra clearance around the label's own data point
+
+            # A. Don't cover its own point
+            if (x0 - pad_own) < px < (x1 + pad_own) and (y0 - pad_own) < py < (y1 + pad_own):
+                continue
+
+            # B. Don't overlap already-placed labels
+            overlap = False
+            for pb in placed_bboxes:
+                if (x0 - pad_label) < pb[2] and (x1 + pad_label) > pb[0] and \
+                   (y0 - pad_label) < pb[3] and (y1 + pad_label) > pb[1]:
+                    overlap = True
+                    break
+            if overlap:
+                continue
+
+            # C. Don't overlap OTHER scatter points
+            pt_hit = False
+            for pdx, pdy in all_points_display:
+                if abs(pdx - px) < 2 and abs(pdy - py) < 2:
+                    continue  # skip own point
+                if (x0 - pad_point) < pdx < (x1 + pad_point) and (y0 - pad_point) < pdy < (y1 + pad_point):
+                    pt_hit = True
+                    break
+            if pt_hit:
+                continue
+
+            # Accept
+            placed_bboxes.append((x0, y0, x1, y1))
+            final_labels.append((label, x, y, ox_pt, oy_pt))
+            found = True
+            break
+
+        if not found:
+            # Fallback: shove it far to the right so it doesn't block the cloud
+            final_labels.append((label, x, y, 400, 0))
+
+    # --- 5. Draw ---
+    for label, x, y, ox, oy in final_labels:
         ax.annotate(label, xy=(x, y),
                     xytext=(ox, oy), textcoords="offset points",
-                    fontsize=11, fontproperties=font_prop,
-                    ha="left" if ox > 0 else "right", va="center",
-                    arrowprops=dict(arrowstyle="-", lw=0.42, alpha=0.35),
-                    bbox=dict(boxstyle="round,pad=0.14", fc="white", alpha=0.78, ec="none"))
+                    fontsize=10, fontproperties=font_prop,
+                    ha="center", va="center",
+                    arrowprops=dict(arrowstyle="-", lw=0.6, alpha=0.45, color="gray"),
+                    bbox=dict(boxstyle="round,pad=0.12", fc="white", alpha=0.85, ec="none"))
 
 
 glucose = load_glucose(glucose_file)

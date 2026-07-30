@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from openpyxl import load_workbook
-from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
+from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE, DATA_DIR, DOWNLOADS_DIR
 from helper import localize
 
 SCRIPT_VERSION = "v1-from-raw-breakfast-activity-mean-lines-errorbar"
@@ -62,14 +62,14 @@ def load_meals(meals_path):
     headers = [str(x).strip() if x is not None else "" for x in next(rows)]
     idx = {name: i for i, name in enumerate(headers)}
 
-    required = ["timestamp", "餐次", "食物"]
+    required = ["Meal_Timestamp", "餐次", "食物"]
     missing = [c for c in required if c not in idx]
     if missing:
-        raise ValueError(f"餐食 Excel 缺少列: {missing}")
+        raise ValueError(localize(f"餐食 Excel 缺少列: {missing}", f"Meal Excel missing columns: {missing}"))
 
     meals = []
     for row in rows:
-        ts = row[idx["timestamp"]]
+        ts = row[idx["Meal_Timestamp"]]
         if ts is None:
             continue
 
@@ -77,7 +77,7 @@ def load_meals(meals_path):
             i = idx.get(name)
             return row[i] if i is not None and i < len(row) else None
 
-        meal_time = parse_dt(get("timestamp"))
+        meal_time = parse_dt(get("Meal_Timestamp"))
         if meal_time is None:
             continue
 
@@ -305,9 +305,9 @@ def plot_breakfast_scatter(df, outdir):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cgm", default='./Clarity_Export_Chen_Wei_2026-07-03_145534.csv', help="Clarity CGM CSV")
-    parser.add_argument("--meals", default='./Stelo_CGM_餐食记录模板.xlsx', help="餐食记录 XLSX")
-    parser.add_argument("--outdir", default="./output", help="输出目录")
+    parser.add_argument("--cgm", default=str(DATA_DIR / "Clarity_Export_Chen_Wei_2026-07-03_145534.csv"), help="Clarity CGM CSV")
+    parser.add_argument("--meals", default=str(DATA_DIR / "Food_track_202606.xlsx"), help=localize("餐食记录 XLSX", "Meal log XLSX"))
+    parser.add_argument("--outdir", default=str(DOWNLOADS_DIR), help=localize("输出目录", "Output directory"))
     args = parser.parse_args()
 
     setup_chinese_font()
@@ -336,7 +336,7 @@ def main():
     print()
     print(summary_df.to_string(index=False))
     print()
-    print("已生成:")
+    print(localize("已生成:", "Generated:"))
     print(plot_path)
     print(detail_path)
     print(summary_path)
