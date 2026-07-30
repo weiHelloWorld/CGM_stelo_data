@@ -174,6 +174,45 @@ Chinese_to_English_map = {
 }
 
 
+# ── English verbose → English shortened (for cleaner plot labels) ──
+
+English_to_shortened = {
+    "oikos triple zero strawberry flavored yogurt": "zero sugar yogurt",
+    "oikos triple zero mixed berry": "zero sugar yogurt",
+    "Oikos Triple Zero strawberry flavored nonfat yogurt": "zero sugar yogurt",
+    "Mixed berry Oikos Triple Zero yogurt": "zero sugar yogurt",
+    "Oikos Triple Zero strawberry flavored yogurt": "zero sugar yogurt",
+    "chobani zero sugar yogurt": "zero sugar yogurt",
+    "Chobani zero sugar yogurt": "zero sugar yogurt",
+    "Chobani yogurt": "zero sugar yogurt",
+    "chobani yogurt": "zero sugar yogurt",
+    "maruchan instant ramen": "instant ramen",
+    "pepperoni pizza": "pizza",
+    "red leaf lettuce": "lettuce",
+    "white rice": "rice",
+    "sweet potato": "sweet potato",
+    "chicken breast": "chicken breast",
+    "protein powder": "protein",
+    "imitation crab meat": "crab stick",
+    "pasta sauce": "pasta sauce",
+    "tomato sauce": "tomato sauce",
+    "instant ramen": "instant ramen",
+    "Kung Pao chicken with white rice": "Kung Pao chicken, rice",
+    "Zero sugar coke": "zero sugar coke",
+    "zero sugar coke": "zero sugar coke",
+    "yakult light drink": "yakult light",
+    "Half pork bbq": "pork bbq",
+    "chicken nuggets": "chicken nuggets",
+    "chicken nugget": "chicken nuggets",
+    "shrimp tempura": "shrimp tempura",
+    "fish tofu": "fish tofu",
+    "pistachios": "pistachios",
+    "pistachio": "pistachios",
+    "in-shell pistachios": "pistachios",
+    "mushrooms": "mushroom",
+}
+
+
 # ── Helpers ─────────────────────────────────────────────────────
 
 def _clean(text: str) -> str:
@@ -218,7 +257,7 @@ def convert_meal_name_language(food_name: str) -> str:
     text = food_name
 
     if _LANG == "en":
-        # Chinese → English: simple substring replace (Chinese chars are word-like)
+        # Chinese → English
         for chi, eng in sorted(
             Chinese_to_English_map.items(),
             key=lambda item: len(item[0]),
@@ -226,6 +265,18 @@ def convert_meal_name_language(food_name: str) -> str:
         ):
             text = text.replace(chi, eng)
         text = _clean(text)
+        # English verbose → English shortened
+        text_lower = text.lower()
+        for long_en, short_en in sorted(
+            English_to_shortened.items(),
+            key=lambda item: len(item[0]),
+            reverse=True,
+        ):
+            pattern = rf"\b{re.escape(long_en.lower())}\b"
+            text_lower = re.sub(pattern, short_en, text_lower)
+        text = _clean(text_lower)
+        # Re-capitalise after shortening
+        text = text[0].upper() + text[1:] if text else text
     else:
         # English → Chinese: use word-boundary regex matching on lowercased text,
         # then re-capitalise the first letter of the result for proper appearance.

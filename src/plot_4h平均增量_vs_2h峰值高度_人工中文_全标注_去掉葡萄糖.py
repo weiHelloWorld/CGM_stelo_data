@@ -112,8 +112,8 @@ def _place_labels(ax, label_df, font_prop, x_col="4h平均增量_mg_dL", y_col="
         best, best_score = None, -float("inf")
         for dx, dy in candidates:
             tx, ty = x + dx, y + dy
-            min_dist = min([((tx - px) ** 2 + ((ty - py) * 0.9) ** 2) ** 0.5 for px, py in placed], default=99)
-            penalty = ((dx ** 2 + dy ** 2) ** 0.5) * 0.12
+            min_dist = min([((tx - px) ** 2 + ((ty - py) * 0.1) ** 2) ** 0.5 for px, py in placed], default=99)
+            penalty = ((dx ** 2 + dy ** 2) ** 0.5) * 0.4
             score = min_dist - penalty
             if score > best_score:
                 best_score, best = score, (tx, ty, dx, dy)
@@ -186,7 +186,7 @@ _place_labels(ax, label_df, font_prop)
 ax.set_xlabel(localize(f"4h 平均增量（{UNIT}）", f"4h Avg Increase ({UNIT})"), fontproperties=font_prop, fontsize=20)
 ax.set_ylabel(localize(f"2h 峰值高度（{UNIT}）", f"2h Peak Height ({UNIT})"), fontproperties=font_prop, fontsize=20)
 ax.set_title(localize("2h 峰值高度 vs 4h 平均增量", "2h Peak Height vs 4h Avg Increase"), fontproperties=font_bold, fontsize=20)
-legend = ax.legend(prop=font_prop)
+legend = ax.legend(prop=font_prop, loc="upper left")
 for text in legend.get_texts():
     text.set_fontproperties(font_prop)
 for label in ax.get_xticklabels() + ax.get_yticklabels():
