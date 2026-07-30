@@ -12,7 +12,7 @@ EXERCISE_CSV = str(DATA_DIR / "exercise.csv")
 
 MG_DL_TO_MMOL_L = 1 / 18.0182
 UNIT = "mg/dL"
-TEXT_LANGUAGE = "zh"  # "en" or "zh"
+TEXT_LANGUAGE = "en"  # "en" or "zh"
 PERIOD_LIST = [
     ("2026-06-16", "2026-07-02"),
     ("2026-07-07", "2026-07-23"),

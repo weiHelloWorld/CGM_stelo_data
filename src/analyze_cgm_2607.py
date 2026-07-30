@@ -15,6 +15,7 @@ from helper import setup_cjk_font
 
 from config import COMBINED_FOOD_DATA_CSV, DEFAULT_CGM_CSV, GLOCOSE_RESPONSE_OUTPUT_CSV, MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
 from helper import localize
+from English_to_Chinese_map import convert_meal_name_language
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Analyze CGM glucose response by meal.")
@@ -154,7 +155,7 @@ def main(cgm_csv_file, food_csv_file):
         if pd.isna(row["4h Avg Increase"]) or pd.isna(row["2h Peak Increase"]):
             continue
 
-        food_label = str(row["Food"])
+        food_label = convert_meal_name_language(str(row["Food"]))
         if len(food_label) > 20:
             food_label = food_label[:17] + "..."
 

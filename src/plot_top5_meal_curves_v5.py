@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from config import UNIT, TEXT_LANGUAGE
 from helper import localize
+from English_to_Chinese_map import convert_meal_name_language
 
 SCRIPT_VERSION = "v5-hours-axis-peak-mean-composite-nextmeal2h"
 
@@ -250,11 +251,8 @@ def rank_meals(records: list[dict], n: int = 5):
 
 
 def chinese_food_name(food: str) -> str:
-    """Return Chinese food name or English original based on TEXT_LANGUAGE."""
-    if TEXT_LANGUAGE == "en":
-        return food
-
-    """Translate common English meal names in this dataset into concise Chinese labels."""
+    """Translate food name to configured language."""
+    return convert_meal_name_language(food)
     exact = {
         "Kung Pao chicken with white rice": "宫保鸡丁配白米饭",
         "Chow mein, mushroom chicken, Beijing beef": "炒面、蘑菇鸡肉、北京牛肉",

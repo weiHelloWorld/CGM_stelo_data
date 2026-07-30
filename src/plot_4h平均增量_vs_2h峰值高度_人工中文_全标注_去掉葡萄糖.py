@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
 from helper import localize
+from English_to_Chinese_map import convert_meal_name_language
 
 PLOT_75G_GLUCOSE = True
 glucose_file = r"./Clarity_Export_Chen_Wei_2026-07-03_145534.csv"
@@ -142,9 +143,7 @@ EXACT_FOOD_MAP = {
 
 def translate_food(text):
     s = "" if pd.isna(text) else str(text).strip()
-    if TEXT_LANGUAGE == "en":
-        return s
-    return EXACT_FOOD_MAP.get(s, s)
+    return convert_meal_name_language(s)
 
 glucose = load_glucose(glucose_file)
 meals = load_meals(meal_file)

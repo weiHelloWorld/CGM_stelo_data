@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import re
 
 from config import UNIT, TEXT_LANGUAGE
-from English_to_Chinese_map import to_Chinese_meal_name
+from English_to_Chinese_map import convert_meal_name_language
 
 
 def localize(zh_text, en_text):
@@ -125,11 +125,7 @@ def plot_glucose_increase_for_meals(
         data = meal['post_meal_data']
         meal_time = meal['meal_time']
 
-        food_name_cn = to_Chinese_meal_name(meal['food'])
-        if TEXT_LANGUAGE == 'en':
-            food_name_display = meal['food']
-        else:
-            food_name_display = food_name_cn
+        food_name_display = convert_meal_name_language(meal['food'])
         short_food = food_name_display[:40] + '...' if len(food_name_display) > 40 else food_name_display
 
         carbs_value = meal['carbs']
