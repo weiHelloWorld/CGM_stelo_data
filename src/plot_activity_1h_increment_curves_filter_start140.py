@@ -6,6 +6,8 @@ import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
+from helper import L
 
 SCRIPT_VERSION = "v2-resistance-1h-increment-filter-start-glucose-140"
 
@@ -73,7 +75,7 @@ def load_clarity(path):
                     "duration_min": parse_duration_to_min(duration),
                 })
     if not cgm_times:
-        raise ValueError("没有读取到 EGV 血糖数据。")
+        raise ValueError(L("没有读取到 EGV 血糖数据。", "No EGV glucose data found."))
     order = np.argsort(np.array(cgm_times, dtype="datetime64[us]"))
     cgm_times = [cgm_times[i] for i in order]
     cgm_values = np.asarray(cgm_values, dtype=float)[order]
@@ -104,7 +106,8 @@ def main():
     cgm_times, cgm_values, activities = load_clarity(args.cgm)
     acts = [a for a in activities if is_activity(a, args.activity_type)]
     if not acts:
-        raise ValueError(f"没有找到 Event Type=Activity 且 Event Subtype={args.activity_type} 的记录。")
+        raise ValueError(L(f"没有找到 Event Type=Activity 且 Event Subtype={args.activity_type} 的记录。",
+                            f"No Activity records found with Event Subtype={args.activity_type}."))
 
     fig, ax = plt.subplots(figsize=(10, 6))
     curve_rows = []
@@ -116,20 +119,20 @@ def main():
         ts1, vals1 = slice_cgm(cgm_times, cgm_values, start, start + timedelta(hours=1))
         if len(vals1) == 0:
             excluded_rows.append({
-                f"{args.activity_type}开始时间": start.strftime("%Y-%m-%d %H:%M:%S"),
-                f"{args.activity_type}持续时间": act["duration"],
-                "排除原因": "1h窗口无CGM数据",
-                "开始附近血糖": np.nan,
+                L(f"{args.activity_type}开始时间", f"{args.activity_type} Start Time"): start.strftime("%Y-%m-%d %H:%M:%S"),
+                L(f"{args.activity_type}持续时间", f"{args.activity_type} Duration"): act["duration"],
+                L("排除原因", "Exclusion Reason"): L("1h窗口无CGM数据", "No CGM data in 1h window"),
+                L("开始附近血糖", "Start Glucose"): np.nan,
             })
             continue
 
         baseline = float(vals1[0])
         if baseline > args.max_start_glucose:
             excluded_rows.append({
-                f"{args.activity_type}开始时间": start.strftime("%Y-%m-%d %H:%M:%S"),
-                f"{args.activity_type}持续时间": act["duration"],
-                "排除原因": f"开始血糖超过{args.max_start_glucose:g}",
-                "开始附近血糖": round(baseline, 1),
+                L(f"{args.activity_type}开始时间", f"{args.activity_type} Start Time"): start.strftime("%Y-%m-%d %H:%M:%S"),
+                L(f"{args.activity_type}持续时间", f"{args.activity_type} Duration"): act["duration"],
+                L("排除原因", "Exclusion Reason"): L(f"开始血糖超过{args.max_start_glucose:g}", f"Start glucose exceeds {args.max_start_glucose:g}"),
+                L("开始附近血糖", "Start Glucose"): round(baseline, 1),
             })
             continue
 
@@ -140,30 +143,30 @@ def main():
 
         for h, t, g, delta in zip(hours, ts1, vals1, inc):
             curve_rows.append({
-                f"{args.activity_type}开始时间": start.strftime("%Y-%m-%d %H:%M:%S"),
-                f"{args.activity_type}持续时间": act["duration"],
-                "运动后时间(h)": round(float(h), 3),
-                "时间": t.strftime("%Y-%m-%d %H:%M:%S"),
-                "开始附近血糖": round(baseline, 1),
-                f"原始血糖({UNIT})": round(float(g), 1),
-                f"血糖增量({UNIT})": round(float(delta), 1),
+                L(f"{args.activity_type}开始时间", f"{args.activity_type} Start Time"): start.strftime("%Y-%m-%d %H:%M:%S"),
+                L(f"{args.activity_type}持续时间", f"{args.activity_type} Duration"): act["duration"],
+                L("运动后时间(h)", "Time after exercise(h)"): round(float(h), 3),
+                L("时间", "Time"): t.strftime("%Y-%m-%d %H:%M:%S"),
+                L("开始附近血糖", "Start Glucose"): round(baseline, 1),
+                L(f"原始血糖({UNIT})", f"Raw Glucose({UNIT})"): round(float(g), 1),
+                L(f"血糖增量({UNIT})", f"Glucose Increase({UNIT})"): round(float(delta), 1),
             })
 
         summary_rows.append({
-            f"{args.activity_type}开始时间": start.strftime("%Y-%m-%d %H:%M:%S"),
-            f"{args.activity_type}持续时间": act["duration"],
-            "1h窗口CGM点数": len(vals1),
-            "开始附近血糖": round(baseline, 1),
-            "1h内最低增量": round(float(np.min(inc)), 1),
-            "1h内最高增量": round(float(np.max(inc)), 1),
-            "1h末端增量": round(float(inc[-1]), 1),
-            "1h内最低原始血糖": round(float(np.min(vals1)), 1),
-            "1h内最高原始血糖": round(float(np.max(vals1)), 1),
+            L(f"{args.activity_type}开始时间", f"{args.activity_type} Start Time"): start.strftime("%Y-%m-%d %H:%M:%S"),
+            L(f"{args.activity_type}持续时间", f"{args.activity_type} Duration"): act["duration"],
+            L("1h窗口CGM点数", "CGM points in 1h window"): len(vals1),
+            L("开始附近血糖", "Start Glucose"): round(baseline, 1),
+            L("1h内最低增量", "Min increase in 1h"): round(float(np.min(inc)), 1),
+            L("1h内最高增量", "Max increase in 1h"): round(float(np.max(inc)), 1),
+            L("1h末端增量", "Increase at 1h end"): round(float(inc[-1]), 1),
+            L("1h内最低原始血糖", "Min raw glucose in 1h"): round(float(np.min(vals1)), 1),
+            L("1h内最高原始血糖", "Max raw glucose in 1h"): round(float(np.max(vals1)), 1),
         })
 
     ax.axhline(0, linewidth=1)
-    ax.set_xlabel("运动开始后时间（小时）", fontsize=20)
-    ax.set_ylabel(f"血糖增量（{UNIT}）", fontsize=20)
+    ax.set_xlabel(L("运动开始后时间（小时）", "Time after exercise start (hours)"), fontsize=20)
+    ax.set_ylabel(L(f"血糖增量（{UNIT}）", f"Glucose Increase ({UNIT})"), fontsize=20)
     ax.set_xlim(0, 1)
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
     ax.grid(alpha=0.3)
@@ -179,14 +182,14 @@ def main():
     pd.DataFrame(summary_rows).to_csv(outdir / f"{args.activity_type}开始后1h血糖增量曲线_排除开始超过{int(args.max_start_glucose)}_摘要.csv", index=False, encoding="utf-8-sig")
     pd.DataFrame(excluded_rows).to_csv(outdir / f"{args.activity_type}开始后1h血糖增量曲线_排除开始超过{int(args.max_start_glucose)}_排除明细.csv", index=False, encoding="utf-8-sig")
 
-    print(f"脚本版本: {SCRIPT_VERSION}")
-    print(f"识别到 {args.activity_type} 次数: {len(acts)}")
-    print(f"画入图中的次数: {len(summary_rows)}")
-    print(f"排除次数: {len(excluded_rows)}")
+    print(f"Script version: {SCRIPT_VERSION}")
+    print(L(f"识别到 {args.activity_type} 次数: {len(acts)}", f"Found {args.activity_type} count: {len(acts)}"))
+    print(L(f"画入图中的次数: {len(summary_rows)}", f"Plotted count: {len(summary_rows)}"))
+    print(L(f"排除次数: {len(excluded_rows)}", f"Excluded count: {len(excluded_rows)}"))
     print(pd.DataFrame(summary_rows).to_string(index=False))
-    print("排除明细:")
+    print(L("排除明细:", "Exclusion details:"))
     print(pd.DataFrame(excluded_rows).to_string(index=False))
-    print("已生成:")
+    print(L("已生成:", "Generated:"))
     print(plot_path)
 
 if __name__ == "__main__":

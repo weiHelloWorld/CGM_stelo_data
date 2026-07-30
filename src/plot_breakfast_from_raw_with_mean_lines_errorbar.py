@@ -8,7 +8,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from openpyxl import load_workbook
-from config import MG_DL_TO_MMOL_L, UNIT
+from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
+from helper import L
 
 SCRIPT_VERSION = "v1-from-raw-breakfast-activity-mean-lines-errorbar"
 
@@ -176,15 +177,15 @@ def build_breakfast_metrics(meals, cgm_times, cgm_values, activities):
         acts = activities_within_30min(activities, meal_time)
 
         records.append({
-            "时间": meal_time.strftime("%Y-%m-%d %H:%M"),
-            "食物": meal["food"],
-            f"基线({UNIT})": round(float(baseline), 1) if np.isfinite(baseline) else np.nan,
-            "基线来源": baseline_source,
-            "半小时内有运动": "有" if acts else "无",
-            "运动开始时间": "; ".join(a["time"].strftime("%Y-%m-%d %H:%M:%S") for a in acts),
-            "运动持续时间(min)": "; ".join("" if np.isnan(a["duration_min"]) else f'{a["duration_min"]:.1f}' for a in acts),
-            "4h平均增量": round(avg4, 2) if np.isfinite(avg4) else np.nan,
-            "2h峰值": round(peak2, 2) if np.isfinite(peak2) else np.nan,
+            L("时间", "Time"): meal_time.strftime("%Y-%m-%d %H:%M"),
+            L("食物", "Food"): meal["food"],
+            L(f"基线({UNIT})", f"Baseline({UNIT})"): round(float(baseline), 1) if np.isfinite(baseline) else np.nan,
+            L("基线来源", "Baseline source"): baseline_source,
+            L("半小时内有运动", "Activity within 30min"): L("有", "With") if acts else L("无", "Without"),
+            L("运动开始时间", "Activity start"): "; ".join(a["time"].strftime("%Y-%m-%d %H:%M:%S") for a in acts),
+            L("运动持续时间(min)", "Activity duration(min)"): "; ".join("" if np.isnan(a["duration_min"]) else f'{a["duration_min"]:.1f}' for a in acts),
+            L("4h平均增量", "4h avg increase"): round(avg4, 2) if np.isfinite(avg4) else np.nan,
+            L("2h峰值", "2h peak"): round(peak2, 2) if np.isfinite(peak2) else np.nan,
         })
 
     return pd.DataFrame(records)
@@ -197,19 +198,22 @@ def plot_breakfast_scatter(df, outdir):
 
     fig, ax = plt.subplots(figsize=(11, 8))
 
-    group_order = [("有", "半小时内有Activity"), ("无", "半小时内无Activity")]
+    group_order = [
+        (L("有", "With"), L("半小时内有Activity", "Activity within 30min")),
+        (L("无", "Without"), L("半小时内无Activity", "No Activity within 30min")),
+    ]
     color_map = {}
 
     # 原始散点
     for key, label in group_order:
-        sub = plot_df[plot_df["半小时内有运动"] == key]
+        sub = plot_df[plot_df[L("半小时内有运动", "Activity within 30min")] == key]
         if len(sub) == 0:
             continue
 
         sc = ax.scatter(
-            sub["4h平均增量"],
-            sub["2h峰值"],
-            label=f"{label} 原始点 (n={len(sub)})",
+            sub[L("4h平均增量", "4h avg increase")],
+            sub[L("2h峰值", "2h peak")],
+            label=L(f"{label} 原始点 (n={len(sub)})", f"{label} original (n={len(sub)})"),
             s=55,
             alpha=0.75,
         )
@@ -229,14 +233,14 @@ def plot_breakfast_scatter(df, outdir):
 
     # 均值虚线贯穿全图 + 均值交点 error bar
     for key, label in group_order:
-        sub = plot_df[plot_df["半小时内有运动"] == key]
+        sub = plot_df[plot_df[L("半小时内有运动", "Activity within 30min")] == key]
         if len(sub) < 2:
             continue
 
-        x_mean = sub["4h平均增量"].mean()
-        x_std = sub["4h平均增量"].std(ddof=1)
-        y_mean = sub["2h峰值"].mean()
-        y_std = sub["2h峰值"].std(ddof=1)
+        x_mean = sub[L("4h平均增量", "4h avg increase")].mean()
+        x_std = sub[L("4h平均增量", "4h avg increase")].std(ddof=1)
+        y_mean = sub[L("2h峰值", "2h peak")].mean()
+        y_std = sub[L("2h峰值", "2h peak")].std(ddof=1)
         color = color_map.get(key)
 
         ax.axvline(
@@ -272,17 +276,17 @@ def plot_breakfast_scatter(df, outdir):
         )
 
         summary_rows.append({
-            "分组": label,
+            L("分组", "Group"): label,
             "n": len(sub),
-            "4h平均增量_mean": round(x_mean, 2),
-            "4h平均增量_std": round(x_std, 2),
-            "2h峰值_mean": round(y_mean, 2),
-            "2h峰值_std": round(y_std, 2),
+            L("4h平均增量_mean", "4h avg increase_mean"): round(x_mean, 2),
+            L("4h平均增量_std", "4h avg increase_std"): round(x_std, 2),
+            L("2h峰值_mean", "2h peak_mean"): round(y_mean, 2),
+            L("2h峰值_std", "2h peak_std"): round(y_std, 2),
         })
 
-    ax.set_title("所有早餐：4h平均增量 vs 2h峰值", fontsize=20)
-    ax.set_xlabel(f"4h平均增量（{UNIT}，相对餐前基线）", fontsize=20)
-    ax.set_ylabel(f"2h峰值高度（{UNIT}，相对餐前基线）", fontsize=20)
+    ax.set_title(L("所有早餐：4h平均增量 vs 2h峰值", "All breakfasts: 4h avg increase vs 2h peak"), fontsize=20)
+    ax.set_xlabel(L(f"4h平均增量（{UNIT}，相对餐前基线）", f"4h avg increase ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
+    ax.set_ylabel(L(f"2h峰值高度（{UNIT}，相对餐前基线）", f"2h peak height ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
     ax.grid(alpha=0.3)
     ax.legend(fontsize=8, loc="best")
 
@@ -323,9 +327,12 @@ def main():
 
     plot_path, summary_path, summary_df = plot_breakfast_scatter(df, outdir)
 
-    print(f"早餐数量: {len(df)}")
-    print(f"半小时内有 Activity: {(df['半小时内有运动'] == '有').sum()}")
-    print(f"半小时内无 Activity: {(df['半小时内有运动'] == '无').sum()}")
+    motion_col = L("半小时内有运动", "Activity within 30min")
+    with_val = L("有", "With")
+    without_val = L("无", "Without")
+    print(L(f"早餐数量: {len(df)}", f"Breakfast count: {len(df)}"))
+    print(L(f"半小时内有 Activity: {(df[motion_col] == with_val).sum()}", f"With Activity within 30min: {(df[motion_col] == with_val).sum()}"))
+    print(L(f"半小时内无 Activity: {(df[motion_col] == without_val).sum()}", f"Without Activity within 30min: {(df[motion_col] == without_val).sum()}"))
     print()
     print(summary_df.to_string(index=False))
     print()

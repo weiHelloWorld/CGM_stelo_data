@@ -1,5 +1,5 @@
 import pandas as pd
-from helper import setup_cjk_font, plot_glucose_increase_for_meals
+from helper import setup_cjk_font, plot_glucose_increase_for_meals, L
 
 from config import COMBINED_FOOD_DATA_CSV, EXERCISE_CSV, PROCESSED_CGM_CSV_FILE
 
@@ -20,7 +20,7 @@ def main():
         (food_df['carbs'] <= 55)
     ].copy()
 
-    print(f"找到 {len(target_meals)} 个碳水 45-55g 的餐次")
+    print(L(f"找到 {len(target_meals)} 个碳水 45-55g 的餐次", f"Found {len(target_meals)} meals with 45-55g carbs"))
 
     summary_df = plot_glucose_increase_for_meals(
         target_meals=target_meals,

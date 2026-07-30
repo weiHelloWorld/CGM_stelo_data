@@ -11,7 +11,8 @@ PROCESSED_CGM_CSV_FILE = str(DATA_DIR / "processed_cgm_glucose_data.csv")
 EXERCISE_CSV = str(DATA_DIR / "exercise.csv")
 
 MG_DL_TO_MMOL_L = 1 / 18.0182
-UNIT = "mmol/L"
+UNIT = "mg/dL"
+TEXT_LANGUAGE = "zh"  # "en" or "zh"
 PERIOD_LIST = [
     ("2026-06-16", "2026-07-02"),
     ("2026-07-07", "2026-07-23"),
@@ -30,6 +31,8 @@ __all__ = [
     "CGM_RAW_DATA_CSV_FILE_ALL",
     "PROCESSED_CGM_CSV_FILE",
     "EXERCISE_CSV",
+    "UNIT",
+    "TEXT_LANGUAGE",
     "MG_DL_TO_MMOL_L",
     "PERIOD_LIST",
     "OFFSET_LIST",

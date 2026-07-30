@@ -10,12 +10,13 @@ from config import (
     COMBINED_FOOD_DATA_CSV,
     PROCESSED_CGM_CSV_FILE,
             EXERCISE_CSV,
-    MG_DL_TO_MMOL_L, DOWNLOADS_DIR, UNIT
+    MG_DL_TO_MMOL_L, DOWNLOADS_DIR, UNIT, TEXT_LANGUAGE
 )
+from helper import L
 
 EXERCISE_TYPE_LABELS = {
-    "swim": "游泳",
-    "resistance": "力量训练",
+    "swim": L("游泳", "Swimming"),
+    "resistance": L("力量训练", "Resistance Training"),
 }
 
 
@@ -83,7 +84,7 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
         ax.text(
             0.5,
             0.5,
-            f"未找到 {subtitle} 训练",
+            L(f"未找到 {subtitle} 训练", f"No {subtitle} sessions found"),
             ha="center",
             va="center",
             fontsize=12,
@@ -145,10 +146,10 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
     )
 
     ax.set_xlim(0, window_hours * 60)
-    ax.set_xlabel("运动开始后分钟数")
-    ax.set_ylabel(f"血糖 ({UNIT})")
+    ax.set_xlabel(L("运动开始后分钟数", "Minutes after exercise start"))
+    ax.set_ylabel(L(f"血糖 ({UNIT})", f"Glucose ({UNIT})"))
     subtitle = EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)
-    ax.set_title(f"运动后 0–{window_hours} 小时的血糖变化 ({subtitle})")
+    ax.set_title(L(f"运动后 0–{window_hours} 小时的血糖变化 ({subtitle})", f"Glucose change 0–{window_hours}h after exercise ({subtitle})"))
     ax.grid(True, alpha=0.25)
     return metrics
 

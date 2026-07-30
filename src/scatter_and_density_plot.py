@@ -3,8 +3,8 @@ import pandas as pd
 import seaborn as sns
 
 from analyze_cgm_2607 import GLOCOSE_RESPONSE_OUTPUT_CSV
-from config import MG_DL_TO_MMOL_L, UNIT
-from helper import setup_cjk_font
+from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
+from helper import setup_cjk_font, L
 setup_cjk_font()
 
 # 1. Load Data
@@ -36,9 +36,9 @@ period_2_start, period_2_end = pd.to_datetime("2026-07-07"), pd.to_datetime(
 
 def assign_period(dt):
     if period_1_start <= dt <= period_1_end + pd.Timedelta(days=1):
-        return "之前"
+        return L("之前", "Before")
     elif period_2_start <= dt <= period_2_end + pd.Timedelta(days=1):
-        return "之后"
+        return L("之后", "After")
     return None
 
 
@@ -56,19 +56,20 @@ else:
 Y_COL = f"2h Peak Increase ({UNIT})"
 X_COL = f"4h Avg Increase ({UNIT})"
 
-# Meal Categories to Loop Through
-meal_categories = {
-    "所有餐次": df_plots["餐次"].dropna().unique().tolist(),
-    "早餐": ["早餐"],
-    "午餐": ["午餐"],
-    "晚餐": ["晚餐"],
-    "加餐": ["加餐"],
+# Meal Categories to Loop Through (internal keys are always the Chinese column values)
+MEAL_CATEGORY_KEYS = ["所有餐次", "早餐", "午餐", "晚餐", "加餐"]
+MEAL_CATEGORY_DISPLAY = {
+    "所有餐次": L("所有餐次", "All Meals"),
+    "早餐": L("早餐", "Breakfast"),
+    "午餐": L("午餐", "Lunch"),
+    "晚餐": L("晚餐", "Dinner"),
+    "加餐": L("加餐", "Snack"),
 }
 
 # Color Palette for Periods
 palette = {
-    "之前": "#1f77b4",
-    "之后": "#ff7f0e",
+    L("之前", "Before"): "#1f77b4",
+    L("之后", "After"): "#ff7f0e",
 }
 
 x_min = df_plots[X_COL].min()
@@ -83,13 +84,18 @@ plot_margin = max((plot_max - plot_min) * 0.05, 0.1)
 xlim = ylim = (plot_min - plot_margin, plot_max + plot_margin)
 
 # 6. Generate Joint Scatter + Density Plots
-for title, categories in meal_categories.items():
+for cat_key in MEAL_CATEGORY_KEYS:
+    title = MEAL_CATEGORY_DISPLAY[cat_key]
+    if cat_key == "所有餐次":
+        categories = df_plots["餐次"].dropna().unique().tolist()
+    else:
+        categories = [cat_key]
     subset = df_plots[df_plots["餐次"].isin(categories)].dropna(
         subset=[X_COL, Y_COL]
     )
 
     if subset.empty:
-        print(f"未找到有效数据点：{title}")
+        print(L(f"未找到有效数据点：{title}", f"No valid data points: {title}"))
         continue
 
     # Main Joint Plot (Scatter only)
@@ -131,14 +137,14 @@ for title, categories in meal_categories.items():
 
     # Layout Customization
     g.fig.suptitle(
-        f"{title}：4小时平均增量 vs 2小时峰值增量",
+        L(f"{title}：4小时平均增量 vs 2小时峰值增量", f"{title}: 4h Avg Increase vs 2h Peak Increase"),
         y=1.02,
         fontsize=14,
         fontweight="bold",
     )
     g.set_axis_labels(
-        f"4小时平均增量 ({UNIT})",
-        f"2小时峰值增量 ({UNIT})",
+        L(f"4小时平均增量 ({UNIT})", f"4h Avg Increase ({UNIT})"),
+        L(f"2小时峰值增量 ({UNIT})", f"2h Peak Increase ({UNIT})"),
         fontsize=11,
         fontweight="bold",
     )

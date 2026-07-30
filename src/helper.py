@@ -9,8 +9,14 @@ from matplotlib.lines import Line2D
 from datetime import datetime, timedelta
 import re
 
-from config import UNIT
+from config import UNIT, TEXT_LANGUAGE
 from English_to_Chinese_map import to_Chinese_meal_name
+
+
+def L(zh_text, en_text):
+    """Return text in the configured language."""
+    from config import TEXT_LANGUAGE as _LANG
+    return zh_text if _LANG == "zh" else en_text
 
 
 def setup_cjk_font():
@@ -60,7 +66,7 @@ def plot_glucose_increase_for_meals(
         # --- Find pre-meal glucose: last CGM reading at or before meal time ---
         pre_meal = cgm_df[cgm_df['Timestamp'] <= meal_time]
         if len(pre_meal) == 0:
-            print(f"跳过：{meal_time} 无餐前葡萄糖数据")
+            print(L(f"跳过：{meal_time} 无餐前葡萄糖数据", f"Skipping: {meal_time} no pre-meal glucose data"))
             continue
 
         pre_meal_glucose = pre_meal.iloc[-1]['Glucose_Value'] if 'Glucose_Value' in pre_meal.columns else pre_meal.iloc[-1]['Glucose_mmol_L']
@@ -73,7 +79,7 @@ def plot_glucose_increase_for_meals(
         ].copy()
 
         if len(post_meal) == 0:
-            print(f"跳过：{meal_time} 无餐后葡萄糖数据")
+            print(L(f"跳过：{meal_time} 无餐后葡萄糖数据", f"Skipping: {meal_time} no post-meal glucose data"))
             continue
 
         # Calculate time since meal (hours) and glucose increase from pre-meal
@@ -97,10 +103,10 @@ def plot_glucose_increase_for_meals(
             ]].copy()
         })
 
-    print(f"有效葡萄糖数据餐次数：{len(meal_data)}")
+    print(L(f"有效葡萄糖数据餐次数：{len(meal_data)}", f"Valid meals with glucose data: {len(meal_data)}"))
 
     if not meal_data:
-        print("未生成曲线：没有有效的目标餐次数据")
+        print(L("未生成曲线：没有有效的目标餐次数据", "No curves generated: no valid target meal data"))
         return pd.DataFrame([])
 
     fig, ax = plt.subplots(figsize=(14, 8))
@@ -109,9 +115,9 @@ def plot_glucose_increase_for_meals(
     markers = ['o', 's', '^', 'D', 'v', 'p']
 
     interruption_marker_map = {
-        '运动': 'o',
-        '下一餐': 's',
-        '中断': 'X'
+        L('运动', 'Exercise'): 'o',
+        L('下一餐', 'Next meal'): 's',
+        L('中断', 'Interruption'): 'X'
     }
     interruption_legend_added = set()
 
@@ -120,15 +126,19 @@ def plot_glucose_increase_for_meals(
         meal_time = meal['meal_time']
 
         food_name_cn = to_Chinese_meal_name(meal['food'])
-        short_food = food_name_cn[:40] + '...' if len(food_name_cn) > 40 else food_name_cn
+        if TEXT_LANGUAGE == 'en':
+            food_name_display = meal['food']
+        else:
+            food_name_display = food_name_cn
+        short_food = food_name_display[:40] + '...' if len(food_name_display) > 40 else food_name_display
 
         carbs_value = meal['carbs']
         if pd.isna(carbs_value):
-            carbs_display = '未知'
+            carbs_display = L('未知', 'unknown')
         else:
             carbs_display = f"{carbs_value:.0f}g"
 
-        label = f"{short_food} | 碳水 = {carbs_display}"
+        label = f"{short_food} | {L('碳水', 'carbs')} = {carbs_display}"
 
         interruption_candidates = []
         if not exercise_df.empty:
@@ -151,11 +161,11 @@ def plot_glucose_increase_for_meals(
         interruption_label = None
         if interruption_time is not None:
             if not exercise_df.empty and interruption_time in exercise_df['Timestamp'].values:
-                interruption_label = '运动'
+                interruption_label = L('运动', 'Exercise')
             elif interruption_time in food_df['Meal_Timestamp'].values:
-                interruption_label = '下一餐'
+                interruption_label = L('下一餐', 'Next meal')
             else:
-                interruption_label = '中断'
+                interruption_label = L('中断', 'Interruption')
 
             after_mask = data['Timestamp'] > interruption_time
             if after_mask.any():
@@ -218,8 +228,8 @@ def plot_glucose_increase_for_meals(
 
     ax.axhline(y=0, color='gray', linestyle='--', linewidth=0.8, alpha=0.5)
 
-    ax.set_xlabel('餐后时间 (小时)', fontsize=13)
-    ax.set_ylabel(f'餐后葡萄糖增量 ({UNIT})', fontsize=13)
+    ax.set_xlabel(L('餐后时间 (小时)', 'Time after meal (hours)'), fontsize=13)
+    ax.set_ylabel(L(f'餐后葡萄糖增量 ({UNIT})', f'Post-meal glucose increase ({UNIT})'), fontsize=13)
     ax.set_title(
         title,
         fontsize=20
@@ -246,7 +256,7 @@ def plot_glucose_increase_for_meals(
             bbox_to_anchor=(0.98, 0.98),
             fontsize=9,
             framealpha=0.95,
-            title='餐次曲线'
+            title=L('餐次曲线', 'Meal curves')
         )
         ax.add_artist(leg1)
     if interrupt_handles:
@@ -261,7 +271,7 @@ def plot_glucose_increase_for_meals(
             bbox_to_anchor=(0.98, 0.58),
             fontsize=9,
             framealpha=0.95,
-            title='中断类型'
+            title=L('中断类型', 'Interruption type')
         )
     ax.grid(True, alpha=0.3, linestyle='-')
     ax.spines['top'].set_visible(False)
@@ -276,20 +286,21 @@ def plot_glucose_increase_for_meals(
         data = meal['post_meal_data']
         window_2h = data[data['hours_since_meal'].between(1.9, 2.1)]
 
+        unit_key = UNIT.replace("/", "")
         summary_rows.append({
-            '日期': meal['meal_time'].strftime('%Y-%m-%d'),
-            '时间': meal['meal_time'].strftime('%H:%M'),
-            '餐名': meal['food'],
-            '碳水_g': meal['carbs'],
-            f'餐前血糖_{UNIT.replace("/", "")}' : meal['pre_meal_glucose'],
-            f'峰值血糖_{UNIT.replace("/", "")}' : data[glucose_col].max(),
-            f'峰值增幅_{UNIT.replace("/", "")}' : data['glucose_increase'].max(),
-            '达峰时间_h': data.loc[
+            L('日期', 'Date'): meal['meal_time'].strftime('%Y-%m-%d'),
+            L('时间', 'Time'): meal['meal_time'].strftime('%H:%M'),
+            L('餐名', 'Meal'): meal['food'],
+            L('碳水_g', 'Carbs_g'): meal['carbs'],
+            L(f'餐前血糖_{unit_key}', f'Pre-meal glucose_{unit_key}'): meal['pre_meal_glucose'],
+            L(f'峰值血糖_{unit_key}', f'Peak glucose_{unit_key}'): data[glucose_col].max(),
+            L(f'峰值增幅_{unit_key}', f'Peak increase_{unit_key}'): data['glucose_increase'].max(),
+            L('达峰时间_h', 'Time to peak_h'): data.loc[
                 data['glucose_increase'].idxmax(), 'hours_since_meal'
             ],
-            f'2h血糖_{UNIT.replace("/", "")}' : window_2h[glucose_col].mean()
+            L(f'2h血糖_{unit_key}', f'2h glucose_{unit_key}'): window_2h[glucose_col].mean()
                         if len(window_2h) > 0 else np.nan,
-            f'2h增幅_{UNIT.replace("/", "")}' : window_2h['glucose_increase'].mean()
+            L(f'2h增幅_{unit_key}', f'2h increase_{unit_key}'): window_2h['glucose_increase'].mean()
                               if len(window_2h) > 0 else np.nan,
         })
 

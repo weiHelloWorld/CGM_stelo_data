@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
-from config import MG_DL_TO_MMOL_L, UNIT
+from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
+from helper import L
 
 PLOT_75G_GLUCOSE = True
 glucose_file = r"./Clarity_Export_Chen_Wei_2026-07-03_145534.csv"
@@ -141,6 +142,8 @@ EXACT_FOOD_MAP = {
 
 def translate_food(text):
     s = "" if pd.isna(text) else str(text).strip()
+    if TEXT_LANGUAGE == "en":
+        return s
     return EXACT_FOOD_MAP.get(s, s)
 
 glucose = load_glucose(glucose_file)
@@ -160,13 +163,13 @@ for i, meal in meals.iterrows():
     contam_4h_avg = bool(pd.notna(next_time) and next_time < meal_time + pd.Timedelta(hours=4))
 
     if contam_2h_peak and contam_4h_avg:
-        pollution_tag = "双污染（已去掉）"
+        pollution_tag = L("双污染（已去掉）", "Both contaminated (removed)")
     elif contam_2h_peak:
-        pollution_tag = "2h峰值污染"
+        pollution_tag = L("2h峰值污染", "2h peak contaminated")
     elif contam_4h_avg:
-        pollution_tag = "4h平均污染"
+        pollution_tag = L("4h平均污染", "4h avg contaminated")
     else:
-        pollution_tag = "未污染"
+        pollution_tag = L("未污染", "Clean")
 
     records.append({
         "timestamp": meal_time,
@@ -193,9 +196,9 @@ cat_peak_only = plot_df[(plot_df["2h峰值可能污染"]) & (~plot_df["4h平均�
 cat_avg_only = plot_df[(~plot_df["2h峰值可能污染"]) & (plot_df["4h平均增量可能污染"])]
 
 fig, ax = plt.subplots(figsize=(18, 13))
-ax.scatter(cat_clean["4h平均增量_mg_dL"], cat_clean["2h峰值高度_mg_dL"], marker="o", s=55, label="未污染")
-ax.scatter(cat_peak_only["4h平均增量_mg_dL"], cat_peak_only["2h峰值高度_mg_dL"], marker="^", s=75, label="只污染 2h 峰值")
-ax.scatter(cat_avg_only["4h平均增量_mg_dL"], cat_avg_only["2h峰值高度_mg_dL"], marker="s", s=75, label="只污染 4h 平均增量")
+ax.scatter(cat_clean["4h平均增量_mg_dL"], cat_clean["2h峰值高度_mg_dL"], marker="o", s=55, label=L("未污染", "Clean"))
+ax.scatter(cat_peak_only["4h平均增量_mg_dL"], cat_peak_only["2h峰值高度_mg_dL"], marker="^", s=75, label=L("只污染 2h 峰值", "Only 2h peak contaminated"))
+ax.scatter(cat_avg_only["4h平均增量_mg_dL"], cat_avg_only["2h峰值高度_mg_dL"], marker="s", s=75, label=L("只污染 4h 平均增量", "Only 4h avg contaminated"))
 
 placed = []
 for _, row in label_df.iterrows():
@@ -231,9 +234,9 @@ for _, row in label_df.iterrows():
                 arrowprops=dict(arrowstyle="-", lw=0.42, alpha=0.35),
                 bbox=dict(boxstyle="round,pad=0.14", fc="white", alpha=0.78, ec="none"))
 
-ax.set_xlabel(f"4h 平均增量（{UNIT}）", fontproperties=font_prop, fontsize=20)
-ax.set_ylabel(f"2h 峰值高度（{UNIT}）", fontproperties=font_prop, fontsize=20)
-ax.set_title("2h 峰值高度 vs 4h 平均增量", fontproperties=font_bold, fontsize=20)
+ax.set_xlabel(L(f"4h 平均增量（{UNIT}）", f"4h Avg Increase ({UNIT})"), fontproperties=font_prop, fontsize=20)
+ax.set_ylabel(L(f"2h 峰值高度（{UNIT}）", f"2h Peak Height ({UNIT})"), fontproperties=font_prop, fontsize=20)
+ax.set_title(L("2h 峰值高度 vs 4h 平均增量", "2h Peak Height vs 4h Avg Increase"), fontproperties=font_bold, fontsize=20)
 legend = ax.legend(prop=font_prop)
 for text in legend.get_texts():
     text.set_fontproperties(font_prop)

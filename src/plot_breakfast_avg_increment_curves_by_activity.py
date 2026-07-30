@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from openpyxl import load_workbook
-from config import MG_DL_TO_MMOL_L, UNIT
+from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
+from helper import L
 
 SCRIPT_VERSION = "v1-breakfast-average-increment-curves-by-activity"
 
@@ -155,7 +156,7 @@ def main():
     cgm_times, cgm_values, activities = load_cgm_and_activities(args.cgm)
 
     grid_min = np.arange(0, 241, 5, dtype=float)
-    group_curves = {"有": [], "无": []}
+    group_curves = {L("有", "With"): [], L("无", "Without"): []}
     detail_rows = []
 
     for meal in meals:
@@ -164,28 +165,31 @@ def main():
         meal_time = meal["time"]
         baseline, baseline_source = baseline_before_meal(cgm_times, cgm_values, meal_time)
         acts = activities_within_30min(activities, meal_time)
-        group = "有" if acts else "无"
+        group = L("有", "With") if acts else L("无", "Without")
         curve, n_points = make_increment_curve(cgm_times, cgm_values, meal_time, baseline, grid_min)
         if curve is None:
             continue
         group_curves[group].append(curve)
         detail_rows.append({
-            "时间": meal_time.strftime("%Y-%m-%d %H:%M"),
-            "食物": meal["food"],
-            "半小时内有运动": group,
-            "运动开始时间": "; ".join(a["time"].strftime("%Y-%m-%d %H:%M:%S") for a in acts),
-            "运动持续时间(min)": "; ".join("" if np.isnan(a["duration_min"]) else f'{a["duration_min"]:.1f}' for a in acts),
-            f"基线({UNIT})": round(baseline, 1) if np.isfinite(baseline) else np.nan,
-            "基线来源": baseline_source,
-            "4h窗口CGM点数": n_points,
+            L("时间", "Time"): meal_time.strftime("%Y-%m-%d %H:%M"),
+            L("食物", "Food"): meal["food"],
+            L("半小时内有运动", "Activity within 30min"): group,
+            L("运动开始时间", "Activity start time"): "; ".join(a["time"].strftime("%Y-%m-%d %H:%M:%S") for a in acts),
+            L("运动持续时间(min)", "Activity duration(min)"): "; ".join("" if np.isnan(a["duration_min"]) else f'{a["duration_min"]:.1f}' for a in acts),
+            L(f"基线({UNIT})", f"Baseline({UNIT})"): round(baseline, 1) if np.isfinite(baseline) else np.nan,
+            L("基线来源", "Baseline source"): baseline_source,
+            L("4h窗口CGM点数", "CGM points in 4h window"): n_points,
         })
 
     fig, ax = plt.subplots(figsize=(11, 7))
-    labels = {"有": "半小时内有Activity", "无": "半小时内无Activity"}
+    labels = {
+        L("有", "With"): L("半小时内有Activity", "Activity within 30min"),
+        L("无", "Without"): L("半小时内无Activity", "No Activity within 30min"),
+    }
     curve_rows = []
     summary_rows = []
 
-    for group in ["有", "无"]:
+    for group in [L("有", "With"), L("无", "Without")]:
         curves = np.array(group_curves[group], dtype=float)
         if curves.size == 0:
             continue
@@ -194,34 +198,34 @@ def main():
         count_curve = np.sum(np.isfinite(curves), axis=0)
         hours = grid_min / 60.0
 
-        line, = ax.plot(hours, mean_curve, linewidth=2.5, label=f"{labels[group]} 平均 (n={curves.shape[0]})")
+        line, = ax.plot(hours, mean_curve, linewidth=2.5, label=L(f"{labels[group]} 平均 (n={curves.shape[0]})", f"{labels[group]} avg (n={curves.shape[0]})"))
         color = line.get_color()
         ax.fill_between(hours, mean_curve - std_curve, mean_curve + std_curve, color=color, alpha=0.18, label=f"{labels[group]} ±1 std")
 
         for h, m, s, c in zip(hours, mean_curve, std_curve, count_curve):
             curve_rows.append({
-                "分组": labels[group],
-                "餐后时间(h)": round(float(h), 3),
-                f"平均血糖增量({UNIT})": round(float(m), 3) if np.isfinite(m) else np.nan,
-                f"std({UNIT})": round(float(s), 3) if np.isfinite(s) else np.nan,
-                "参与均值的曲线数": int(c),
+                L("分组", "Group"): labels[group],
+                L("餐后时间(h)", "Time after meal(h)"): round(float(h), 3),
+                L(f"平均血糖增量({UNIT})", f"Avg glucose increase({UNIT})"): round(float(m), 3) if np.isfinite(m) else np.nan,
+                L(f"std({UNIT})", f"std({UNIT})"): round(float(s), 3) if np.isfinite(s) else np.nan,
+                L("参与均值的曲线数", "Curves in avg"): int(c),
             })
 
         for target_min in [30, 60, 120, 180, 240]:
             idx = int(np.where(grid_min == target_min)[0][0])
             summary_rows.append({
-                "分组": labels[group],
+                L("分组", "Group"): labels[group],
                 "n": curves.shape[0],
-                "时间点": f"{target_min//60}h" if target_min % 60 == 0 else f"{target_min}min",
-                "平均增量": round(float(mean_curve[idx]), 2) if np.isfinite(mean_curve[idx]) else np.nan,
+                L("时间点", "Time point"): f"{target_min//60}h" if target_min % 60 == 0 else f"{target_min}min",
+                L("平均增量", "Avg increase"): round(float(mean_curve[idx]), 2) if np.isfinite(mean_curve[idx]) else np.nan,
                 "std": round(float(std_curve[idx]), 2) if np.isfinite(std_curve[idx]) else np.nan,
-                "参与曲线数": int(count_curve[idx]),
+                L("参与曲线数", "Curves count"): int(count_curve[idx]),
             })
 
     ax.axhline(0, linewidth=1)
-    ax.set_title("早餐后4小时平均血糖增量曲线：有运动 vs 无运动", fontsize=20)
-    ax.set_xlabel("餐后时间（小时）", fontsize=20)
-    ax.set_ylabel(f"血糖增量（{UNIT}，相对餐前基线）", fontsize=20)
+    ax.set_title(L("早餐后4小时平均血糖增量曲线：有运动 vs 无运动", "4h avg post-breakfast glucose increase: with vs without exercise"), fontsize=20)
+    ax.set_xlabel(L("餐后时间（小时）", "Time after meal (hours)"), fontsize=20)
+    ax.set_ylabel(L(f"血糖增量（{UNIT}，相对餐前基线）", f"Glucose increase ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
     ax.set_xlim(0, 4)
     ax.set_xticks([0, 1, 2, 3, 4])
     ax.grid(alpha=0.3)
@@ -237,11 +241,11 @@ def main():
     summary_df = pd.DataFrame(summary_rows)
     summary_df.to_csv(outdir / "早餐_有运动_vs无运动_4h平均血糖增量曲线_摘要.csv", index=False, encoding="utf-8-sig")
 
-    print(f"脚本版本: {SCRIPT_VERSION}")
-    print(f"有运动早餐: {len(group_curves['有'])}")
-    print(f"无运动早餐: {len(group_curves['无'])}")
+    print(f"Script version: {SCRIPT_VERSION}")
+    print(L(f"有运动早餐: {len(group_curves[L('有', 'With')])}", f"Breakfast with exercise: {len(group_curves[L('有', 'With')])}"))
+    print(L(f"无运动早餐: {len(group_curves[L('无', 'Without')])}", f"Breakfast without exercise: {len(group_curves[L('无', 'Without')])}"))
     print(summary_df.to_string(index=False))
-    print("已生成:")
+    print(L("已生成:", "Generated:"))
     print(plot_path)
     print(outdir / "早餐_有运动_vs无运动_4h平均血糖增量曲线_均值std.csv")
     print(outdir / "早餐_有运动_vs无运动_4h平均血糖增量曲线_明细.csv")
