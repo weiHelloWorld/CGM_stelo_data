@@ -62,14 +62,17 @@ def load_meals(meals_path):
     headers = [str(x).strip() if x is not None else "" for x in next(rows)]
     idx = {name: i for i, name in enumerate(headers)}
 
-    required = ["Meal_Timestamp", "餐次", "食物"]
+    ts_col = "Meal_Timestamp" if "Meal_Timestamp" in idx else "timestamp"
+    meal_col = "餐次"
+    food_col = "食物" if "食物" in idx else "Food"
+    required = [ts_col, meal_col, food_col]
     missing = [c for c in required if c not in idx]
     if missing:
         raise ValueError(localize(f"餐食 Excel 缺少列: {missing}", f"Meal Excel missing columns: {missing}"))
 
     meals = []
     for row in rows:
-        ts = row[idx["Meal_Timestamp"]]
+        ts = row[idx[ts_col]]
         if ts is None:
             continue
 
@@ -77,14 +80,14 @@ def load_meals(meals_path):
             i = idx.get(name)
             return row[i] if i is not None and i < len(row) else None
 
-        meal_time = parse_dt(get("Meal_Timestamp"))
+        meal_time = parse_dt(get(ts_col))
         if meal_time is None:
             continue
 
         meals.append({
             "time": meal_time,
             "meal_type": str(get("餐次") or ""),
-            "food": str(get("食物") or ""),
+            "food": str(get(food_col) or ""),
         })
 
     meals.sort(key=lambda x: x["time"])
@@ -192,9 +195,11 @@ def build_breakfast_metrics(meals, cgm_times, cgm_values, activities):
 
 
 def plot_breakfast_scatter(df, outdir):
-    plot_df = df.dropna(subset=["4h平均增量", "2h峰值"]).copy()
+    col_4h = localize("4h平均增量", "4h avg increase")
+    col_2h = localize("2h峰值", "2h peak")
+    plot_df = df.dropna(subset=[col_4h, col_2h]).copy()
     if plot_df.empty:
-        raise ValueError("没有可画图的早餐数据：2h峰值或4h平均增量为空。")
+        raise ValueError(localize("没有可画图的早餐数据：2h峰值或4h平均增量为空。", "No plottable breakfast data: 2h peak or 4h avg increase is empty."))
 
     fig, ax = plt.subplots(figsize=(11, 8))
 
@@ -219,11 +224,11 @@ def plot_breakfast_scatter(df, outdir):
         )
         color_map[key] = sc.get_facecolor()[0]
 
-    # 日期标注
+    # Date annotations
     for _, row in plot_df.iterrows():
         ax.annotate(
-            pd.to_datetime(row["时间"]).strftime("%m/%d"),
-            (row["4h平均增量"], row["2h峰值"]),
+            pd.to_datetime(row[localize("时间", "Time")]).strftime("%m/%d"),
+            (row[col_4h], row[col_2h]),
             fontsize=8,
             xytext=(4, 4),
             textcoords="offset points",
@@ -231,16 +236,16 @@ def plot_breakfast_scatter(df, outdir):
 
     summary_rows = []
 
-    # 均值虚线贯穿全图 + 均值交点 error bar
+    # Mean dash lines + errorbar at intersection
     for key, label in group_order:
         sub = plot_df[plot_df[localize("半小时内有运动", "Activity within 30min")] == key]
         if len(sub) < 2:
             continue
 
-        x_mean = sub[localize("4h平均增量", "4h avg increase")].mean()
-        x_std = sub[localize("4h平均增量", "4h avg increase")].std(ddof=1)
-        y_mean = sub[localize("2h峰值", "2h peak")].mean()
-        y_std = sub[localize("2h峰值", "2h peak")].std(ddof=1)
+        x_mean = sub[col_4h].mean()
+        x_std = sub[col_4h].std(ddof=1)
+        y_mean = sub[col_2h].mean()
+        y_std = sub[col_2h].std(ddof=1)
         color = color_map.get(key)
 
         ax.axvline(
@@ -315,7 +320,7 @@ def main():
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    print(f"脚本版本: {SCRIPT_VERSION}")
+    print(f"Script version: {SCRIPT_VERSION}")
 
     meals = load_meals(args.meals)
     cgm_times, cgm_values, activities = load_cgm_and_activities(args.cgm)
