@@ -266,9 +266,9 @@ def meal_label(record: dict, rank: int) -> str:
         food = food[:100] + "…"
     return (
         f"{rank}. {date} {_mt(record['meal_type'])} | {food} "
-        f"| {localize('峰值', 'Peak')}+{record['peak']:.0f}，" 
-        f"{localize('4h均值', '4h avg')}+{record['mean_inc']:.1f}，"
-        f"{localize('综合分', 'Score = ')}{record.get('worst_score', float('nan')):.2f}"
+        # f"| {localize('峰值', 'Peak')}+{record['peak']:.0f}，" 
+        # f"{localize('4h均值', '4h avg')}+{record['mean_inc']:.1f}，"
+        # f"{localize('综合分', 'Score = ')}{record.get('worst_score', float('nan')):.2f}"
     )
 
 
@@ -289,8 +289,8 @@ def plot_group(records: list[dict], title: str, output_path: Path):
     ax.axvline(240, linewidth=0.8, linestyle="--", alpha=0.5)
 
     ax.set_title(title, fontsize=16)
-    ax.set_xlabel(localize("餐后时间（小时）", "Time after meal (hours)"))
-    ax.set_ylabel(localize(f"相对餐前基线的血糖增量（{UNIT}）", f"Glucose increase from pre-meal baseline ({UNIT})"))
+    ax.set_xlabel(localize("餐后时间（小时）", "Time after meal (hours)"), fontsize=16)
+    ax.set_ylabel(localize(f"相对餐前基线的血糖增量（{UNIT}）", f"Glucose increase from pre-meal baseline ({UNIT})"), fontsize=16)
     ax.set_xlim(0, 240)
     ax.set_xticks([0, 60, 120, 180, 240])
     ax.set_xticklabels(["0", "1", "2", "3", "4"])

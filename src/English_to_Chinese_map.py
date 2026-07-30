@@ -146,7 +146,7 @@ Chinese_to_English_map = {
     "好人家麻婆豆腐调料": "Haorenjia Mapo Tofu seasoning",
     "鸡块": "chicken nuggets",
     "鸡胸肉罐头": "canned chicken breast",
-    "辛拉面": "Shin Ramyun",
+    "辛拉面": "Shin Ramyun (instant noodles)",
     "带壳开心果": "in-shell pistachios",
     "熟米饭": "cooked rice",
     "沙丁鱼罐头": "canned sardine",
