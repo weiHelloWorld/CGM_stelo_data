@@ -187,8 +187,8 @@ def run_plot(include_glucose):
     _place_labels(ax, label_df, font_prop)
 
     ax.set_xlabel(localize(f"4h 平均增量（{UNIT}）", f"4h Avg Increase ({UNIT})"), fontproperties=font_prop, fontsize=20)
-    ax.set_ylabel(localize(f"2h 峰值高度（{UNIT}）", f"2h Peak Height ({UNIT})"), fontproperties=font_prop, fontsize=20)
-    ax.set_title(localize("2h 峰值高度 vs 4h 平均增量", "2h Peak Height vs 4h Avg Increase"), fontproperties=font_bold, fontsize=20)
+    ax.set_ylabel(localize(f"2h 峰值（{UNIT}）", f"2h Peak ({UNIT})"), fontproperties=font_prop, fontsize=20)
+    ax.set_title(localize("2h 峰值 vs 4h 平均增量", "2h Peak vs 4h Avg Increase"), fontproperties=font_bold, fontsize=20)
     legend = ax.legend(prop=font_prop, loc="upper left")
     for text in legend.get_texts():
         text.set_fontproperties(font_prop)
