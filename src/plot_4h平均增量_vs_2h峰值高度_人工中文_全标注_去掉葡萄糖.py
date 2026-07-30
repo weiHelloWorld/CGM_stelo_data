@@ -7,7 +7,7 @@ from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE, DATA_DIR, DOWNLOADS_DIR
 from helper import localize
 from English_to_Chinese_map import convert_meal_name_language
 
-PLOT_75G_GLUCOSE = True
+PLOT_75G_GLUCOSE = False
 glucose_file = str(DATA_DIR / "Clarity_Export_Chen_Wei_2026-07-03_145534.csv")
 meal_file = str(DATA_DIR / "Food_track_202606.xlsx")
 
@@ -86,6 +86,114 @@ def translate_food(text):
     s = "" if pd.isna(text) else str(text).strip()
     return convert_meal_name_language(s)
 
+
+def _place_labels(ax, label_df, font_prop, x_col="4h平均增量_mg_dL", y_col="2h峰值高度_mg_dL"):
+    """Place labels with force-directed overlap removal, keeping them off data points."""
+    data = label_df.copy().sort_values("标签优先级", ascending=False).reset_index(drop=True)
+    n = len(data)
+    if n == 0:
+        return
+
+    # --- 1. Initial radial spread ---
+    np.random.seed(42)
+    angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    np.random.shuffle(angles)
+    radii = np.linspace(35, 60, n)
+    offsets = np.column_stack([radii * np.cos(angles), radii * np.sin(angles)])  # shape (n, 2) in offset points
+
+    # --- 2. Create annotations at initial positions ---
+    anns = []
+    for i, (_, row) in enumerate(data.iterrows()):
+        x, y = row[x_col], row[y_col]
+        label = shorten_label(row["食物_中文"], 50)
+        ann = ax.annotate(label, xy=(x, y), xytext=(offsets[i, 0], offsets[i, 1]),
+                          textcoords="offset points",
+                          fontsize=11, fontproperties=font_prop,
+                          ha="center", va="center",
+                          bbox=dict(boxstyle="round,pad=0.14", fc="white", alpha=0.78, ec="none"))
+        anns.append(ann)
+
+    # --- 3. Draw to get real pixel extents ---
+    fig = ax.figure
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+
+    # Get display-coord centres of each data point (pixels)
+    data_px = np.array([ax.transData.transform((row[x_col], row[y_col])) for _, row in data.iterrows()])
+
+    def get_bboxes():
+        """Return array of [[x0, y0, x1, y1], ...] in display pixel coords."""
+        boxes = np.empty((n, 4))
+        for i, ann in enumerate(anns):
+            r = ann.get_window_extent(renderer)
+            boxes[i] = [r.x0, r.y0, r.x1, r.y1]
+        return boxes
+
+    # --- 4. Force-directed iterations ---
+    step = 8
+    for _ in range(400):
+        bboxes = get_bboxes()
+        centres = np.column_stack([(bboxes[:, 0] + bboxes[:, 2]) / 2,
+                                    (bboxes[:, 1] + bboxes[:, 3]) / 2])
+        w2 = (bboxes[:, 2] - bboxes[:, 0]) / 2  # half-widths
+        h2 = (bboxes[:, 3] - bboxes[:, 1]) / 2  # half-heights
+
+        forces = np.zeros((n, 2))
+        moved = False
+
+        for i in range(n):
+            # --- repulsion from other labels ---
+            dx_l = centres[:, 0] - centres[i, 0]
+            dy_l = centres[:, 1] - centres[i, 1]
+            dist_l = np.sqrt(dx_l ** 2 + dy_l ** 2)
+            overlap_x = (w2[i] + w2) - np.abs(dx_l)
+            overlap_y = (h2[i] + h2) - np.abs(dy_l)
+            overlapping = (overlap_x > 0) & (overlap_y > 0) & (dist_l > 0.1)
+            if overlapping.any():
+                dx = dx_l[overlapping]
+                dy = dy_l[overlapping]
+                d = np.maximum(np.sqrt(dx ** 2 + dy ** 2), 0.1)
+                forces[i] -= np.array([np.sum(dx / d), np.sum(dy / d)])
+                moved = True
+
+            # --- attraction back toward own data point (medium spring) ---
+            dp = centres[i] - data_px[i]
+            dist_p = np.sqrt(dp[0] ** 2 + dp[1] ** 2)
+            if dist_p > 5:
+                forces[i] -= 0.01 * dp  # gentle pull back toward data point
+
+        if not moved:
+            break
+
+        # Apply forces as pixel offsets, then convert back to offset points
+        for i in range(n):
+            # Get current offset in display pixels
+            old_off_px = centres[i] - data_px[i]
+            new_off_px = old_off_px + step * forces[i]
+            # Clamp to avoid labels flying off screen
+            new_off_px = np.clip(new_off_px, -800, 800)
+            # Convert display pixels → offset points
+            dpi_scale = fig.dpi / 72.0
+            new_off_pt = new_off_px / dpi_scale
+            offsets[i] = new_off_pt
+            # Update annotation position
+            anns[i].xyann = (new_off_pt[0], new_off_pt[1])
+
+    # --- 5. Remove old and re-create with arrows ---
+    for ann in anns:
+        ann.remove()
+    for i, (_, row) in enumerate(data.iterrows()):
+        x, y = row[x_col], row[y_col]
+        label = shorten_label(row["食物_中文"], 50)
+        ox, oy = offsets[i]
+        ax.annotate(label, xy=(x, y),
+                    xytext=(ox, oy), textcoords="offset points",
+                    fontsize=11, fontproperties=font_prop,
+                    ha="left" if ox > 0 else "right", va="center",
+                    arrowprops=dict(arrowstyle="-", lw=0.42, alpha=0.35),
+                    bbox=dict(boxstyle="round,pad=0.14", fc="white", alpha=0.78, ec="none"))
+
+
 glucose = load_glucose(glucose_file)
 meals = load_meals(meal_file)
 
@@ -125,7 +233,7 @@ for i, meal in meals.iterrows():
 result = pd.DataFrame(records)
 plot_df = result[~((result["2h峰值可能污染"]) & (result["4h平均增量可能污染"]))].copy()
 if not PLOT_75G_GLUCOSE:
-    plot_df = plot_df[plot_df["食物_中文"] != "75g 葡萄糖"].copy()
+    plot_df = plot_df[plot_df["食物"] != "75g glucose"].copy()
 plot_df = plot_df.dropna(subset=["2h峰值高度_mg_dL", "4h平均增量_mg_dL"]).reset_index(drop=True)
 plot_df["标签优先级"] = plot_df["2h峰值高度_mg_dL"] + 1.2 * plot_df["4h平均增量_mg_dL"]
 label_df = plot_df.sort_values("标签优先级", ascending=False).reset_index(drop=True)
@@ -137,42 +245,9 @@ cat_avg_only = plot_df[(~plot_df["2h峰值可能污染"]) & (plot_df["4h平均�
 
 fig, ax = plt.subplots(figsize=(18, 13))
 ax.scatter(cat_clean["4h平均增量_mg_dL"], cat_clean["2h峰值高度_mg_dL"], marker="o", s=55, label=localize("未污染", "Clean"))
-ax.scatter(cat_peak_only["4h平均增量_mg_dL"], cat_peak_only["2h峰值高度_mg_dL"], marker="^", s=75, label=localize("只污染 2h 峰值", "Only 2h peak contaminated"))
-ax.scatter(cat_avg_only["4h平均增量_mg_dL"], cat_avg_only["2h峰值高度_mg_dL"], marker="s", s=75, label=localize("只污染 4h 平均增量", "Only 4h avg contaminated"))
+ax.scatter(cat_avg_only["4h平均增量_mg_dL"], cat_avg_only["2h峰值高度_mg_dL"], marker="s", s=55, label=localize("只污染 4h 平均增量", "4h avg contaminated"))
 
-placed = []
-for _, row in label_df.iterrows():
-    x = row["4h平均增量_mg_dL"]
-    y = row["2h峰值高度_mg_dL"]
-    # suffix = "（2h?）" if row["2h峰值可能污染"] else ("（4h?）" if row["4h平均增量可能污染"] else "")
-    label = shorten_label(row["食物_中文"], 50) # + suffix
-    candidates = [
-        (0.5, 0.9), (0.9, -1.0), (-0.9, 1.0), (-0.9, -1.0),
-        (1.4, 0.2), (-1.4, 0.2), (0.2, 1.7), (0.2, -1.7),
-        (1.8, 1.2), (-1.8, 1.2), (1.8, -1.2), (-1.8, -1.2),
-        (2.3, 0.0), (-2.3, 0.0), (0.0, 2.4), (0.0, -2.4),
-        (2.8, 1.3), (-2.8, 1.3), (2.8, -1.3), (-2.8, -1.3),
-        (3.2, 0.8), (-3.2, 0.8), (3.2, -0.8), (-3.2, -0.8),
-        (3.8, 0.0), (-3.8, 0.0), (0.0, 3.2), (0.0, -3.2),
-    ]
-    best = None
-    best_score = None
-    for dx, dy in candidates:
-        tx, ty = x + dx, y + dy
-        min_dist = min([((tx - px) ** 2 + ((ty - py) * 0.9) ** 2) ** 0.5 for px, py in placed], default=999.0)
-        penalty = ((dx**2 + dy**2)**0.5) * 0.12
-        score = min_dist - penalty
-        if best_score is None or score > best_score:
-            best_score = score
-            best = (dx, dy)
-    dx, dy = best
-    tx, ty = x + dx, y + dy
-    placed.append((tx, ty))
-    ax.annotate(label, xy=(x, y), xytext=(tx, ty), textcoords="data",
-                fontsize=7.8, fontproperties=font_prop,
-                ha="left" if dx >= 0 else "right", va="center",
-                arrowprops=dict(arrowstyle="-", lw=0.42, alpha=0.35),
-                bbox=dict(boxstyle="round,pad=0.14", fc="white", alpha=0.78, ec="none"))
+_place_labels(ax, label_df, font_prop)
 
 ax.set_xlabel(localize(f"4h 平均增量（{UNIT}）", f"4h Avg Increase ({UNIT})"), fontproperties=font_prop, fontsize=20)
 ax.set_ylabel(localize(f"2h 峰值高度（{UNIT}）", f"2h Peak Height ({UNIT})"), fontproperties=font_prop, fontsize=20)
@@ -185,4 +260,4 @@ for label in ax.get_xticklabels() + ax.get_yticklabels():
 ax.grid(True, alpha=0.25)
 plt.tight_layout()
 plt.savefig(out_png, dpi=240, bbox_inches="tight")
-plt.show()
+# plt.show()
