@@ -59,7 +59,10 @@ def load_clarity(path):
                 if ts is not None and gv:
                     try:
                         cgm_times.append(ts)
-                        cgm_values.append(float(gv))
+                        value = float(gv)
+                        if UNIT == "mmol/L":
+                            value = value * MG_DL_TO_MMOL_L
+                        cgm_values.append(value)
                     except Exception:
                         pass
             elif event_type == "Activity" and ts is not None:
@@ -142,8 +145,8 @@ def main():
                 "运动后时间(h)": round(float(h), 3),
                 "时间": t.strftime("%Y-%m-%d %H:%M:%S"),
                 "开始附近血糖": round(baseline, 1),
-                "原始血糖(mg/dL)": round(float(g), 1),
-                "血糖增量(mg/dL)": round(float(delta), 1),
+                f"原始血糖({UNIT})": round(float(g), 1),
+                f"血糖增量({UNIT})": round(float(delta), 1),
             })
 
         summary_rows.append({
@@ -160,7 +163,7 @@ def main():
 
     ax.axhline(0, linewidth=1)
     ax.set_xlabel("运动开始后时间（小时）", fontsize=20)
-    ax.set_ylabel("血糖增量（mg/dL）", fontsize=20)
+    ax.set_ylabel(f"血糖增量（{UNIT}）", fontsize=20)
     ax.set_xlim(0, 1)
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
     ax.grid(alpha=0.3)

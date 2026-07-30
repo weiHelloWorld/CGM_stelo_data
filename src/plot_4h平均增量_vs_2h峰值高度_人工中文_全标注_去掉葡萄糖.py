@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
+from config import MG_DL_TO_MMOL_L, UNIT
 
 PLOT_75G_GLUCOSE = True
 glucose_file = r"./Clarity_Export_Chen_Wei_2026-07-03_145534.csv"
@@ -22,6 +23,8 @@ def load_glucose(path):
     g = raw[raw["Event Type"] == "EGV"].copy()
     g["timestamp"] = pd.to_datetime(g["Timestamp (YYYY-MM-DDThh:mm:ss)"], errors="coerce")
     g["glucose"] = pd.to_numeric(g["Glucose Value (mg/dL)"], errors="coerce")
+    if UNIT == "mmol/L":
+        g["glucose"] = g["glucose"] * MG_DL_TO_MMOL_L
     g = g.dropna(subset=["timestamp", "glucose"]).sort_values("timestamp").reset_index(drop=True)
     return g[["timestamp", "glucose"]]
 
@@ -228,8 +231,8 @@ for _, row in label_df.iterrows():
                 arrowprops=dict(arrowstyle="-", lw=0.42, alpha=0.35),
                 bbox=dict(boxstyle="round,pad=0.14", fc="white", alpha=0.78, ec="none"))
 
-ax.set_xlabel("4h 平均增量（mg/dL）", fontproperties=font_prop, fontsize=20)
-ax.set_ylabel("2h 峰值高度（mg/dL）", fontproperties=font_prop, fontsize=20)
+ax.set_xlabel(f"4h 平均增量（{UNIT}）", fontproperties=font_prop, fontsize=20)
+ax.set_ylabel(f"2h 峰值高度（{UNIT}）", fontproperties=font_prop, fontsize=20)
 ax.set_title("2h 峰值高度 vs 4h 平均增量", fontproperties=font_bold, fontsize=20)
 legend = ax.legend(prop=font_prop)
 for text in legend.get_texts():

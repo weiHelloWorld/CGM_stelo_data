@@ -13,7 +13,7 @@ from matplotlib import font_manager
 from matplotlib.font_manager import FontProperties
 from helper import setup_cjk_font
 
-from config import COMBINED_FOOD_DATA_CSV, DEFAULT_CGM_CSV, GLOCOSE_RESPONSE_OUTPUT_CSV
+from config import COMBINED_FOOD_DATA_CSV, DEFAULT_CGM_CSV, GLOCOSE_RESPONSE_OUTPUT_CSV, MG_DL_TO_MMOL_L, UNIT
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Analyze CGM glucose response by meal.")
@@ -70,6 +70,8 @@ def main(cgm_csv_file, food_csv_file):
     cgm_df = cgm_df[cgm_df["Event Type"] == "EGV"].copy()
     cgm_df["Timestamp"] = pd.to_datetime(cgm_df["Timestamp (YYYY-MM-DDThh:mm:ss)"])
     cgm_df["Glucose"] = pd.to_numeric(cgm_df["Glucose Value (mg/dL)"], errors="coerce")
+    if UNIT == "mmol/L":
+        cgm_df["Glucose"] = cgm_df["Glucose"] * MG_DL_TO_MMOL_L
     cgm_df = cgm_df.dropna(subset=["Glucose"]).sort_values("Timestamp")
 
     # 4. Calculate Post-Meal Metrics
@@ -167,8 +169,8 @@ def main(cgm_csv_file, food_csv_file):
         )
 
     plt.title("Glucose Response Annotated by Food Item", fontsize=14, pad=15)
-    plt.xlabel("4-Hour Average Increase (mg/dL)", fontsize=12)
-    plt.ylabel("2-Hour Peak Increase (mg/dL)", fontsize=12)
+    plt.xlabel(f"4-Hour Average Increase ({UNIT})", fontsize=12)
+    plt.ylabel(f"2-Hour Peak Increase ({UNIT})", fontsize=12)
     plt.legend()
     plt.tight_layout()
 

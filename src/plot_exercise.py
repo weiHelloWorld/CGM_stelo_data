@@ -10,7 +10,7 @@ from config import (
     COMBINED_FOOD_DATA_CSV,
     PROCESSED_CGM_CSV_FILE,
             EXERCISE_CSV,
-    MG_DL_TO_MMOL_L, DOWNLOADS_DIR
+    MG_DL_TO_MMOL_L, DOWNLOADS_DIR, UNIT
 )
 
 EXERCISE_TYPE_LABELS = {
@@ -35,7 +35,9 @@ def load_data(exercise_path, glucose_path, food_path):
     gl["glucose"] = pd.to_numeric(
         gl["Glucose Value (mg/dL)"],
         errors="coerce"
-    ) * MG_DL_TO_MMOL_L
+    )
+    if UNIT == "mmol/L":
+        gl["glucose"] = gl["glucose"] * MG_DL_TO_MMOL_L
 
     gl = (
         gl
@@ -144,7 +146,7 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
 
     ax.set_xlim(0, window_hours * 60)
     ax.set_xlabel("运动开始后分钟数")
-    ax.set_ylabel("血糖 (mmol/L)")
+    ax.set_ylabel(f"血糖 ({UNIT})")
     subtitle = EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)
     ax.set_title(f"运动后 0–{window_hours} 小时的血糖变化 ({subtitle})")
     ax.grid(True, alpha=0.25)

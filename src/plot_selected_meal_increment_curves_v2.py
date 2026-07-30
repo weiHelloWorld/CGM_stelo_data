@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from config import COMBINED_FOOD_DATA_CSV, DATA_DIR, EXERCISE_CSV, DOWNLOADS_DIR
+from config import COMBINED_FOOD_DATA_CSV, DATA_DIR, EXERCISE_CSV, DOWNLOADS_DIR, MG_DL_TO_MMOL_L, UNIT
 from helper import plot_glucose_increase_for_meals, setup_cjk_font
 from process_raw_food_data import get_combined_food_data
 
@@ -15,8 +15,11 @@ def process_cgm_for_plot(csv_path: Path) -> pd.DataFrame:
     df = pd.read_csv(csv_path)
     df = df[df['Event Type'].astype(str).str.strip() == 'EGV'].copy()
     df['Timestamp'] = pd.to_datetime(df['Timestamp (YYYY-MM-DDThh:mm:ss)'])
-    df['Glucose_mmol_L'] = pd.to_numeric(df['Glucose Value (mg/dL)'], errors='coerce') / 18.0182
-    return df[['Timestamp', 'Glucose_mmol_L']].dropna().sort_values('Timestamp').reset_index(drop=True)
+    glucose_value = pd.to_numeric(df['Glucose Value (mg/dL)'], errors='coerce')
+    if UNIT == 'mmol/L':
+        glucose_value = glucose_value * MG_DL_TO_MMOL_L
+    df['Glucose_Value'] = glucose_value
+    return df[['Timestamp', 'Glucose_Value']].dropna().sort_values('Timestamp').reset_index(drop=True)
 
 
 def build_target_meals(food_df: pd.DataFrame) -> pd.DataFrame:

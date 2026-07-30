@@ -3,7 +3,7 @@ import pandas as pd
 import seaborn as sns
 
 from analyze_cgm_2607 import GLOCOSE_RESPONSE_OUTPUT_CSV
-from config import MG_DL_TO_MMOL_L
+from config import MG_DL_TO_MMOL_L, UNIT
 from helper import setup_cjk_font
 setup_cjk_font()
 
@@ -45,12 +45,16 @@ def assign_period(dt):
 df_filtered["Period"] = df_filtered["Meal_Timestamp"].apply(assign_period)
 df_plots = df_filtered.dropna(subset=["Period"]).copy()
 
-df_plots["4h Avg Increase (mmol/L)"] = df_plots["4h Avg Increase"] * MG_DL_TO_MMOL_L
-df_plots["2h Peak Increase (mmol/L)"] = df_plots["2h Peak Increase"] * MG_DL_TO_MMOL_L
+if UNIT == "mmol/L":
+    df_plots[f"4h Avg Increase ({UNIT})"] = df_plots["4h Avg Increase"] * MG_DL_TO_MMOL_L
+    df_plots[f"2h Peak Increase ({UNIT})"] = df_plots["2h Peak Increase"] * MG_DL_TO_MMOL_L
+else:
+    df_plots[f"4h Avg Increase ({UNIT})"] = df_plots["4h Avg Increase"]
+    df_plots[f"2h Peak Increase ({UNIT})"] = df_plots["2h Peak Increase"]
 
 # 5. Define Axes Variables
-Y_COL = "2h Peak Increase (mmol/L)"
-X_COL = "4h Avg Increase (mmol/L)"
+Y_COL = f"2h Peak Increase ({UNIT})"
+X_COL = f"4h Avg Increase ({UNIT})"
 
 # Meal Categories to Loop Through
 meal_categories = {
@@ -133,8 +137,8 @@ for title, categories in meal_categories.items():
         fontweight="bold",
     )
     g.set_axis_labels(
-        "4小时平均增量 (mmol/L)",
-        "2小时峰值增量 (mmol/L)",
+        f"4小时平均增量 ({UNIT})",
+        f"2小时峰值增量 ({UNIT})",
         fontsize=11,
         fontweight="bold",
     )

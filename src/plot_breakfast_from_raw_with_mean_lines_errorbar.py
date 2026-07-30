@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from openpyxl import load_workbook
+from config import MG_DL_TO_MMOL_L, UNIT
 
 SCRIPT_VERSION = "v1-from-raw-breakfast-activity-mean-lines-errorbar"
 
@@ -104,7 +105,10 @@ def load_cgm_and_activities(clarity_csv_path):
                 if ts is not None and gv:
                     try:
                         cgm_times.append(ts)
-                        cgm_values.append(float(gv))
+                        value = float(gv)
+                        if UNIT == "mmol/L":
+                            value = value * MG_DL_TO_MMOL_L
+                        cgm_values.append(value)
                     except Exception:
                         pass
 
@@ -174,7 +178,7 @@ def build_breakfast_metrics(meals, cgm_times, cgm_values, activities):
         records.append({
             "时间": meal_time.strftime("%Y-%m-%d %H:%M"),
             "食物": meal["food"],
-            "基线(mg/dL)": round(float(baseline), 1) if np.isfinite(baseline) else np.nan,
+            f"基线({UNIT})": round(float(baseline), 1) if np.isfinite(baseline) else np.nan,
             "基线来源": baseline_source,
             "半小时内有运动": "有" if acts else "无",
             "运动开始时间": "; ".join(a["time"].strftime("%Y-%m-%d %H:%M:%S") for a in acts),
@@ -277,8 +281,8 @@ def plot_breakfast_scatter(df, outdir):
         })
 
     ax.set_title("所有早餐：4h平均增量 vs 2h峰值", fontsize=20)
-    ax.set_xlabel("4h平均增量（mg/dL，相对餐前基线）", fontsize=20)
-    ax.set_ylabel("2h峰值高度（mg/dL，相对餐前基线）", fontsize=20)
+    ax.set_xlabel(f"4h平均增量（{UNIT}，相对餐前基线）", fontsize=20)
+    ax.set_ylabel(f"2h峰值高度（{UNIT}，相对餐前基线）", fontsize=20)
     ax.grid(alpha=0.3)
     ax.legend(fontsize=8, loc="best")
 

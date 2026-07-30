@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from openpyxl import load_workbook
+from config import MG_DL_TO_MMOL_L, UNIT
 
 SCRIPT_VERSION = "v1-breakfast-average-increment-curves-by-activity"
 
@@ -89,7 +90,10 @@ def load_cgm_and_activities(path):
                 if ts is not None and gv:
                     try:
                         cgm_times.append(ts)
-                        cgm_values.append(float(gv))
+                        value = float(gv)
+                        if UNIT == "mmol/L":
+                            value = value * MG_DL_TO_MMOL_L
+                        cgm_values.append(value)
                     except Exception:
                         pass
             elif event_type == "Activity" and ts is not None:
@@ -171,7 +175,7 @@ def main():
             "半小时内有运动": group,
             "运动开始时间": "; ".join(a["time"].strftime("%Y-%m-%d %H:%M:%S") for a in acts),
             "运动持续时间(min)": "; ".join("" if np.isnan(a["duration_min"]) else f'{a["duration_min"]:.1f}' for a in acts),
-            "基线(mg/dL)": round(baseline, 1) if np.isfinite(baseline) else np.nan,
+            f"基线({UNIT})": round(baseline, 1) if np.isfinite(baseline) else np.nan,
             "基线来源": baseline_source,
             "4h窗口CGM点数": n_points,
         })
@@ -198,8 +202,8 @@ def main():
             curve_rows.append({
                 "分组": labels[group],
                 "餐后时间(h)": round(float(h), 3),
-                "平均血糖增量(mg/dL)": round(float(m), 3) if np.isfinite(m) else np.nan,
-                "std(mg/dL)": round(float(s), 3) if np.isfinite(s) else np.nan,
+                f"平均血糖增量({UNIT})": round(float(m), 3) if np.isfinite(m) else np.nan,
+                f"std({UNIT})": round(float(s), 3) if np.isfinite(s) else np.nan,
                 "参与均值的曲线数": int(c),
             })
 
@@ -217,7 +221,7 @@ def main():
     ax.axhline(0, linewidth=1)
     ax.set_title("早餐后4小时平均血糖增量曲线：有运动 vs 无运动", fontsize=20)
     ax.set_xlabel("餐后时间（小时）", fontsize=20)
-    ax.set_ylabel("血糖增量（mg/dL，相对餐前基线）", fontsize=20)
+    ax.set_ylabel(f"血糖增量（{UNIT}，相对餐前基线）", fontsize=20)
     ax.set_xlim(0, 4)
     ax.set_xticks([0, 1, 2, 3, 4])
     ax.grid(alpha=0.3)
