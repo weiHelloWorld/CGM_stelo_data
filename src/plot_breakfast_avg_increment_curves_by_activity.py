@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from openpyxl import load_workbook
 from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
-from helper import L
+from helper import localize
 
 SCRIPT_VERSION = "v1-breakfast-average-increment-curves-by-activity"
 
@@ -156,7 +156,7 @@ def main():
     cgm_times, cgm_values, activities = load_cgm_and_activities(args.cgm)
 
     grid_min = np.arange(0, 241, 5, dtype=float)
-    group_curves = {L("有", "With"): [], L("无", "Without"): []}
+    group_curves = {localize("有", "With"): [], localize("无", "Without"): []}
     detail_rows = []
 
     for meal in meals:
@@ -165,31 +165,31 @@ def main():
         meal_time = meal["time"]
         baseline, baseline_source = baseline_before_meal(cgm_times, cgm_values, meal_time)
         acts = activities_within_30min(activities, meal_time)
-        group = L("有", "With") if acts else L("无", "Without")
+        group = localize("有", "With") if acts else localize("无", "Without")
         curve, n_points = make_increment_curve(cgm_times, cgm_values, meal_time, baseline, grid_min)
         if curve is None:
             continue
         group_curves[group].append(curve)
         detail_rows.append({
-            L("时间", "Time"): meal_time.strftime("%Y-%m-%d %H:%M"),
-            L("食物", "Food"): meal["food"],
-            L("半小时内有运动", "Activity within 30min"): group,
-            L("运动开始时间", "Activity start time"): "; ".join(a["time"].strftime("%Y-%m-%d %H:%M:%S") for a in acts),
-            L("运动持续时间(min)", "Activity duration(min)"): "; ".join("" if np.isnan(a["duration_min"]) else f'{a["duration_min"]:.1f}' for a in acts),
-            L(f"基线({UNIT})", f"Baseline({UNIT})"): round(baseline, 1) if np.isfinite(baseline) else np.nan,
-            L("基线来源", "Baseline source"): baseline_source,
-            L("4h窗口CGM点数", "CGM points in 4h window"): n_points,
+            localize("时间", "Time"): meal_time.strftime("%Y-%m-%d %H:%M"),
+            localize("食物", "Food"): meal["food"],
+            localize("半小时内有运动", "Activity within 30min"): group,
+            localize("运动开始时间", "Activity start time"): "; ".join(a["time"].strftime("%Y-%m-%d %H:%M:%S") for a in acts),
+            localize("运动持续时间(min)", "Activity duration(min)"): "; ".join("" if np.isnan(a["duration_min"]) else f'{a["duration_min"]:.1f}' for a in acts),
+            localize(f"基线({UNIT})", f"Baseline({UNIT})"): round(baseline, 1) if np.isfinite(baseline) else np.nan,
+            localize("基线来源", "Baseline source"): baseline_source,
+            localize("4h窗口CGM点数", "CGM points in 4h window"): n_points,
         })
 
     fig, ax = plt.subplots(figsize=(11, 7))
     labels = {
-        L("有", "With"): L("半小时内有Activity", "Activity within 30min"),
-        L("无", "Without"): L("半小时内无Activity", "No Activity within 30min"),
+        localize("有", "With"): localize("半小时内有Activity", "Activity within 30min"),
+        localize("无", "Without"): localize("半小时内无Activity", "No Activity within 30min"),
     }
     curve_rows = []
     summary_rows = []
 
-    for group in [L("有", "With"), L("无", "Without")]:
+    for group in [localize("有", "With"), localize("无", "Without")]:
         curves = np.array(group_curves[group], dtype=float)
         if curves.size == 0:
             continue
@@ -198,34 +198,34 @@ def main():
         count_curve = np.sum(np.isfinite(curves), axis=0)
         hours = grid_min / 60.0
 
-        line, = ax.plot(hours, mean_curve, linewidth=2.5, label=L(f"{labels[group]} 平均 (n={curves.shape[0]})", f"{labels[group]} avg (n={curves.shape[0]})"))
+        line, = ax.plot(hours, mean_curve, linewidth=2.5, label=localize(f"{labels[group]} 平均 (n={curves.shape[0]})", f"{labels[group]} avg (n={curves.shape[0]})"))
         color = line.get_color()
         ax.fill_between(hours, mean_curve - std_curve, mean_curve + std_curve, color=color, alpha=0.18, label=f"{labels[group]} ±1 std")
 
         for h, m, s, c in zip(hours, mean_curve, std_curve, count_curve):
             curve_rows.append({
-                L("分组", "Group"): labels[group],
-                L("餐后时间(h)", "Time after meal(h)"): round(float(h), 3),
-                L(f"平均血糖增量({UNIT})", f"Avg glucose increase({UNIT})"): round(float(m), 3) if np.isfinite(m) else np.nan,
-                L(f"std({UNIT})", f"std({UNIT})"): round(float(s), 3) if np.isfinite(s) else np.nan,
-                L("参与均值的曲线数", "Curves in avg"): int(c),
+                localize("分组", "Group"): labels[group],
+                localize("餐后时间(h)", "Time after meal(h)"): round(float(h), 3),
+                localize(f"平均血糖增量({UNIT})", f"Avg glucose increase({UNIT})"): round(float(m), 3) if np.isfinite(m) else np.nan,
+                localize(f"std({UNIT})", f"std({UNIT})"): round(float(s), 3) if np.isfinite(s) else np.nan,
+                localize("参与均值的曲线数", "Curves in avg"): int(c),
             })
 
         for target_min in [30, 60, 120, 180, 240]:
             idx = int(np.where(grid_min == target_min)[0][0])
             summary_rows.append({
-                L("分组", "Group"): labels[group],
+                localize("分组", "Group"): labels[group],
                 "n": curves.shape[0],
-                L("时间点", "Time point"): f"{target_min//60}h" if target_min % 60 == 0 else f"{target_min}min",
-                L("平均增量", "Avg increase"): round(float(mean_curve[idx]), 2) if np.isfinite(mean_curve[idx]) else np.nan,
+                localize("时间点", "Time point"): f"{target_min//60}h" if target_min % 60 == 0 else f"{target_min}min",
+                localize("平均增量", "Avg increase"): round(float(mean_curve[idx]), 2) if np.isfinite(mean_curve[idx]) else np.nan,
                 "std": round(float(std_curve[idx]), 2) if np.isfinite(std_curve[idx]) else np.nan,
-                L("参与曲线数", "Curves count"): int(count_curve[idx]),
+                localize("参与曲线数", "Curves count"): int(count_curve[idx]),
             })
 
     ax.axhline(0, linewidth=1)
-    ax.set_title(L("早餐后4小时平均血糖增量曲线：有运动 vs 无运动", "4h avg post-breakfast glucose increase: with vs without exercise"), fontsize=20)
-    ax.set_xlabel(L("餐后时间（小时）", "Time after meal (hours)"), fontsize=20)
-    ax.set_ylabel(L(f"血糖增量（{UNIT}，相对餐前基线）", f"Glucose increase ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
+    ax.set_title(localize("早餐后4小时平均血糖增量曲线：有运动 vs 无运动", "4h avg post-breakfast glucose increase: with vs without exercise"), fontsize=20)
+    ax.set_xlabel(localize("餐后时间（小时）", "Time after meal (hours)"), fontsize=20)
+    ax.set_ylabel(localize(f"血糖增量（{UNIT}，相对餐前基线）", f"Glucose increase ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
     ax.set_xlim(0, 4)
     ax.set_xticks([0, 1, 2, 3, 4])
     ax.grid(alpha=0.3)
@@ -242,10 +242,10 @@ def main():
     summary_df.to_csv(outdir / "早餐_有运动_vs无运动_4h平均血糖增量曲线_摘要.csv", index=False, encoding="utf-8-sig")
 
     print(f"Script version: {SCRIPT_VERSION}")
-    print(L(f"有运动早餐: {len(group_curves[L('有', 'With')])}", f"Breakfast with exercise: {len(group_curves[L('有', 'With')])}"))
-    print(L(f"无运动早餐: {len(group_curves[L('无', 'Without')])}", f"Breakfast without exercise: {len(group_curves[L('无', 'Without')])}"))
+    print(localize(f"有运动早餐: {len(group_curves[localize('有', 'With')])}", f"Breakfast with exercise: {len(group_curves[localize('有', 'With')])}"))
+    print(localize(f"无运动早餐: {len(group_curves[localize('无', 'Without')])}", f"Breakfast without exercise: {len(group_curves[localize('无', 'Without')])}"))
     print(summary_df.to_string(index=False))
-    print(L("已生成:", "Generated:"))
+    print(localize("已生成:", "Generated:"))
     print(plot_path)
     print(outdir / "早餐_有运动_vs无运动_4h平均血糖增量曲线_均值std.csv")
     print(outdir / "早餐_有运动_vs无运动_4h平均血糖增量曲线_明细.csv")

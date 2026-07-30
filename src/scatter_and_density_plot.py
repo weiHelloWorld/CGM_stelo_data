@@ -4,7 +4,7 @@ import seaborn as sns
 
 from analyze_cgm_2607 import GLOCOSE_RESPONSE_OUTPUT_CSV
 from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
-from helper import setup_cjk_font, L
+from helper import setup_cjk_font, localize
 setup_cjk_font()
 
 # 1. Load Data
@@ -36,9 +36,9 @@ period_2_start, period_2_end = pd.to_datetime("2026-07-07"), pd.to_datetime(
 
 def assign_period(dt):
     if period_1_start <= dt <= period_1_end + pd.Timedelta(days=1):
-        return L("之前", "Before")
+        return localize("之前", "Before")
     elif period_2_start <= dt <= period_2_end + pd.Timedelta(days=1):
-        return L("之后", "After")
+        return localize("之后", "After")
     return None
 
 
@@ -59,17 +59,17 @@ X_COL = f"4h Avg Increase ({UNIT})"
 # Meal Categories to Loop Through (internal keys are always the Chinese column values)
 MEAL_CATEGORY_KEYS = ["所有餐次", "早餐", "午餐", "晚餐", "加餐"]
 MEAL_CATEGORY_DISPLAY = {
-    "所有餐次": L("所有餐次", "All Meals"),
-    "早餐": L("早餐", "Breakfast"),
-    "午餐": L("午餐", "Lunch"),
-    "晚餐": L("晚餐", "Dinner"),
-    "加餐": L("加餐", "Snack"),
+    "所有餐次": localize("所有餐次", "All Meals"),
+    "早餐": localize("早餐", "Breakfast"),
+    "午餐": localize("午餐", "Lunch"),
+    "晚餐": localize("晚餐", "Dinner"),
+    "加餐": localize("加餐", "Snack"),
 }
 
 # Color Palette for Periods
 palette = {
-    L("之前", "Before"): "#1f77b4",
-    L("之后", "After"): "#ff7f0e",
+    localize("之前", "Before"): "#1f77b4",
+    localize("之后", "After"): "#ff7f0e",
 }
 
 x_min = df_plots[X_COL].min()
@@ -95,7 +95,7 @@ for cat_key in MEAL_CATEGORY_KEYS:
     )
 
     if subset.empty:
-        print(L(f"未找到有效数据点：{title}", f"No valid data points: {title}"))
+        print(localize(f"未找到有效数据点：{title}", f"No valid data points: {title}"))
         continue
 
     # Main Joint Plot (Scatter only)
@@ -137,14 +137,14 @@ for cat_key in MEAL_CATEGORY_KEYS:
 
     # Layout Customization
     g.fig.suptitle(
-        L(f"{title}：4小时平均增量 vs 2小时峰值增量", f"{title}: 4h Avg Increase vs 2h Peak Increase"),
+        localize(f"{title}：4小时平均增量 vs 2小时峰值增量", f"{title}: 4h Avg Increase vs 2h Peak Increase"),
         y=1.02,
         fontsize=14,
         fontweight="bold",
     )
     g.set_axis_labels(
-        L(f"4小时平均增量 ({UNIT})", f"4h Avg Increase ({UNIT})"),
-        L(f"2小时峰值增量 ({UNIT})", f"2h Peak Increase ({UNIT})"),
+        localize(f"4小时平均增量 ({UNIT})", f"4h Avg Increase ({UNIT})"),
+        localize(f"2小时峰值增量 ({UNIT})", f"2h Peak Increase ({UNIT})"),
         fontsize=11,
         fontweight="bold",
     )

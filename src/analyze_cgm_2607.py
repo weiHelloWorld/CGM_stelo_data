@@ -14,7 +14,7 @@ from matplotlib.font_manager import FontProperties
 from helper import setup_cjk_font
 
 from config import COMBINED_FOOD_DATA_CSV, DEFAULT_CGM_CSV, GLOCOSE_RESPONSE_OUTPUT_CSV, MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
-from helper import L
+from helper import localize
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Analyze CGM glucose response by meal.")
@@ -169,9 +169,9 @@ def main(cgm_csv_file, food_csv_file):
             weight="bold" if row["2h Peak Increase"] > 30 else "normal",
         )
 
-    plt.title(L("食物标注的血糖响应", "Glucose Response Annotated by Food Item"), fontsize=14, pad=15)
-    plt.xlabel(L(f"4-Hour Average Increase ({UNIT})", f"4-Hour Average Increase ({UNIT})"), fontsize=12)
-    plt.ylabel(L(f"2-Hour Peak Increase ({UNIT})", f"2-Hour Peak Increase ({UNIT})"), fontsize=12)
+    plt.title(localize("食物标注的血糖响应", "Glucose Response Annotated by Food Item"), fontsize=14, pad=15)
+    plt.xlabel(localize(f"4-Hour Average Increase ({UNIT})", f"4-Hour Average Increase ({UNIT})"), fontsize=12)
+    plt.ylabel(localize(f"2-Hour Peak Increase ({UNIT})", f"2-Hour Peak Increase ({UNIT})"), fontsize=12)
     plt.legend()
     plt.tight_layout()
 

@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 from config import COMBINED_FOOD_DATA_CSV, DATA_DIR, EXERCISE_CSV, DOWNLOADS_DIR, MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
-from helper import plot_glucose_increase_for_meals, setup_cjk_font, L
+from helper import plot_glucose_increase_for_meals, setup_cjk_font, localize
 from process_raw_food_data import get_combined_food_data
 
 
@@ -39,7 +39,7 @@ def build_target_meals(food_df: pd.DataFrame) -> pd.DataFrame:
 
         matches = food_df.loc[candidate_mask, ['Meal_Timestamp', 'Food', 'carbs']].copy()
         if matches.empty:
-            print(L(f"未找到餐次: {label}", f"Meal not found: {label}"))
+            print(localize(f"未找到餐次: {label}", f"Meal not found: {label}"))
             continue
 
         matches = matches.sort_values('Meal_Timestamp').reset_index(drop=True)
@@ -61,7 +61,7 @@ def build_target_meals(food_df: pd.DataFrame) -> pd.DataFrame:
 
     target_meals = pd.DataFrame(rows)
     if target_meals.empty:
-        raise ValueError(L("没有找到任何目标餐次", "No target meals found"))
+        raise ValueError(localize("没有找到任何目标餐次", "No target meals found"))
     return target_meals.sort_values('Meal_Timestamp').reset_index(drop=True)
 
 
@@ -73,7 +73,7 @@ def main():
         combined_food_data = get_combined_food_data()
         food_csv_path.parent.mkdir(parents=True, exist_ok=True)
         combined_food_data.to_csv(food_csv_path, index=False)
-        print(L(f"生成组合餐食数据: {food_csv_path}", f"Generated combined food data: {food_csv_path}"))
+        print(localize(f"生成组合餐食数据: {food_csv_path}", f"Generated combined food data: {food_csv_path}"))
 
     food_df = pd.read_csv(food_csv_path)
     cgm_df = process_cgm_for_plot(CGM_CSV_PATH)
@@ -89,9 +89,9 @@ def main():
     ].copy()
 
     if target_meals.empty:
-        raise ValueError(L("目标餐次不在 CGM 数据覆盖范围内", "Target meals not within CGM data range"))
+        raise ValueError(localize("目标餐次不在 CGM 数据覆盖范围内", "Target meals not within CGM data range"))
 
-    print(L("选中的餐次:", "Selected meals:"))
+    print(localize("选中的餐次:", "Selected meals:"))
     print(target_meals.to_string(index=False))
 
     summary_df = plot_glucose_increase_for_meals(

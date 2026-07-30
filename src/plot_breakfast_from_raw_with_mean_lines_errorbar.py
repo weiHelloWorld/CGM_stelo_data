@@ -9,7 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from openpyxl import load_workbook
 from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
-from helper import L
+from helper import localize
 
 SCRIPT_VERSION = "v1-from-raw-breakfast-activity-mean-lines-errorbar"
 
@@ -177,15 +177,15 @@ def build_breakfast_metrics(meals, cgm_times, cgm_values, activities):
         acts = activities_within_30min(activities, meal_time)
 
         records.append({
-            L("时间", "Time"): meal_time.strftime("%Y-%m-%d %H:%M"),
-            L("食物", "Food"): meal["food"],
-            L(f"基线({UNIT})", f"Baseline({UNIT})"): round(float(baseline), 1) if np.isfinite(baseline) else np.nan,
-            L("基线来源", "Baseline source"): baseline_source,
-            L("半小时内有运动", "Activity within 30min"): L("有", "With") if acts else L("无", "Without"),
-            L("运动开始时间", "Activity start"): "; ".join(a["time"].strftime("%Y-%m-%d %H:%M:%S") for a in acts),
-            L("运动持续时间(min)", "Activity duration(min)"): "; ".join("" if np.isnan(a["duration_min"]) else f'{a["duration_min"]:.1f}' for a in acts),
-            L("4h平均增量", "4h avg increase"): round(avg4, 2) if np.isfinite(avg4) else np.nan,
-            L("2h峰值", "2h peak"): round(peak2, 2) if np.isfinite(peak2) else np.nan,
+            localize("时间", "Time"): meal_time.strftime("%Y-%m-%d %H:%M"),
+            localize("食物", "Food"): meal["food"],
+            localize(f"基线({UNIT})", f"Baseline({UNIT})"): round(float(baseline), 1) if np.isfinite(baseline) else np.nan,
+            localize("基线来源", "Baseline source"): baseline_source,
+            localize("半小时内有运动", "Activity within 30min"): localize("有", "With") if acts else localize("无", "Without"),
+            localize("运动开始时间", "Activity start"): "; ".join(a["time"].strftime("%Y-%m-%d %H:%M:%S") for a in acts),
+            localize("运动持续时间(min)", "Activity duration(min)"): "; ".join("" if np.isnan(a["duration_min"]) else f'{a["duration_min"]:.1f}' for a in acts),
+            localize("4h平均增量", "4h avg increase"): round(avg4, 2) if np.isfinite(avg4) else np.nan,
+            localize("2h峰值", "2h peak"): round(peak2, 2) if np.isfinite(peak2) else np.nan,
         })
 
     return pd.DataFrame(records)
@@ -199,21 +199,21 @@ def plot_breakfast_scatter(df, outdir):
     fig, ax = plt.subplots(figsize=(11, 8))
 
     group_order = [
-        (L("有", "With"), L("半小时内有Activity", "Activity within 30min")),
-        (L("无", "Without"), L("半小时内无Activity", "No Activity within 30min")),
+        (localize("有", "With"), localize("半小时内有Activity", "Activity within 30min")),
+        (localize("无", "Without"), localize("半小时内无Activity", "No Activity within 30min")),
     ]
     color_map = {}
 
     # 原始散点
     for key, label in group_order:
-        sub = plot_df[plot_df[L("半小时内有运动", "Activity within 30min")] == key]
+        sub = plot_df[plot_df[localize("半小时内有运动", "Activity within 30min")] == key]
         if len(sub) == 0:
             continue
 
         sc = ax.scatter(
-            sub[L("4h平均增量", "4h avg increase")],
-            sub[L("2h峰值", "2h peak")],
-            label=L(f"{label} 原始点 (n={len(sub)})", f"{label} original (n={len(sub)})"),
+            sub[localize("4h平均增量", "4h avg increase")],
+            sub[localize("2h峰值", "2h peak")],
+            label=localize(f"{label} 原始点 (n={len(sub)})", f"{label} original (n={len(sub)})"),
             s=55,
             alpha=0.75,
         )
@@ -233,14 +233,14 @@ def plot_breakfast_scatter(df, outdir):
 
     # 均值虚线贯穿全图 + 均值交点 error bar
     for key, label in group_order:
-        sub = plot_df[plot_df[L("半小时内有运动", "Activity within 30min")] == key]
+        sub = plot_df[plot_df[localize("半小时内有运动", "Activity within 30min")] == key]
         if len(sub) < 2:
             continue
 
-        x_mean = sub[L("4h平均增量", "4h avg increase")].mean()
-        x_std = sub[L("4h平均增量", "4h avg increase")].std(ddof=1)
-        y_mean = sub[L("2h峰值", "2h peak")].mean()
-        y_std = sub[L("2h峰值", "2h peak")].std(ddof=1)
+        x_mean = sub[localize("4h平均增量", "4h avg increase")].mean()
+        x_std = sub[localize("4h平均增量", "4h avg increase")].std(ddof=1)
+        y_mean = sub[localize("2h峰值", "2h peak")].mean()
+        y_std = sub[localize("2h峰值", "2h peak")].std(ddof=1)
         color = color_map.get(key)
 
         ax.axvline(
@@ -276,17 +276,17 @@ def plot_breakfast_scatter(df, outdir):
         )
 
         summary_rows.append({
-            L("分组", "Group"): label,
+            localize("分组", "Group"): label,
             "n": len(sub),
-            L("4h平均增量_mean", "4h avg increase_mean"): round(x_mean, 2),
-            L("4h平均增量_std", "4h avg increase_std"): round(x_std, 2),
-            L("2h峰值_mean", "2h peak_mean"): round(y_mean, 2),
-            L("2h峰值_std", "2h peak_std"): round(y_std, 2),
+            localize("4h平均增量_mean", "4h avg increase_mean"): round(x_mean, 2),
+            localize("4h平均增量_std", "4h avg increase_std"): round(x_std, 2),
+            localize("2h峰值_mean", "2h peak_mean"): round(y_mean, 2),
+            localize("2h峰值_std", "2h peak_std"): round(y_std, 2),
         })
 
-    ax.set_title(L("所有早餐：4h平均增量 vs 2h峰值", "All breakfasts: 4h avg increase vs 2h peak"), fontsize=20)
-    ax.set_xlabel(L(f"4h平均增量（{UNIT}，相对餐前基线）", f"4h avg increase ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
-    ax.set_ylabel(L(f"2h峰值高度（{UNIT}，相对餐前基线）", f"2h peak height ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
+    ax.set_title(localize("所有早餐：4h平均增量 vs 2h峰值", "All breakfasts: 4h avg increase vs 2h peak"), fontsize=20)
+    ax.set_xlabel(localize(f"4h平均增量（{UNIT}，相对餐前基线）", f"4h avg increase ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
+    ax.set_ylabel(localize(f"2h峰值高度（{UNIT}，相对餐前基线）", f"2h peak height ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
     ax.grid(alpha=0.3)
     ax.legend(fontsize=8, loc="best")
 
@@ -327,12 +327,12 @@ def main():
 
     plot_path, summary_path, summary_df = plot_breakfast_scatter(df, outdir)
 
-    motion_col = L("半小时内有运动", "Activity within 30min")
-    with_val = L("有", "With")
-    without_val = L("无", "Without")
-    print(L(f"早餐数量: {len(df)}", f"Breakfast count: {len(df)}"))
-    print(L(f"半小时内有 Activity: {(df[motion_col] == with_val).sum()}", f"With Activity within 30min: {(df[motion_col] == with_val).sum()}"))
-    print(L(f"半小时内无 Activity: {(df[motion_col] == without_val).sum()}", f"Without Activity within 30min: {(df[motion_col] == without_val).sum()}"))
+    motion_col = localize("半小时内有运动", "Activity within 30min")
+    with_val = localize("有", "With")
+    without_val = localize("无", "Without")
+    print(localize(f"早餐数量: {len(df)}", f"Breakfast count: {len(df)}"))
+    print(localize(f"半小时内有 Activity: {(df[motion_col] == with_val).sum()}", f"With Activity within 30min: {(df[motion_col] == with_val).sum()}"))
+    print(localize(f"半小时内无 Activity: {(df[motion_col] == without_val).sum()}", f"Without Activity within 30min: {(df[motion_col] == without_val).sum()}"))
     print()
     print(summary_df.to_string(index=False))
     print()

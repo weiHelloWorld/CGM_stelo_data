@@ -12,11 +12,11 @@ from config import (
             EXERCISE_CSV,
     MG_DL_TO_MMOL_L, DOWNLOADS_DIR, UNIT, TEXT_LANGUAGE
 )
-from helper import L
+from helper import localize
 
 EXERCISE_TYPE_LABELS = {
-    "swim": L("游泳", "Swimming"),
-    "resistance": L("力量训练", "Resistance Training"),
+    "swim": localize("游泳", "Swimming"),
+    "resistance": localize("力量训练", "Resistance Training"),
 }
 
 
@@ -84,7 +84,7 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
         ax.text(
             0.5,
             0.5,
-            L(f"未找到 {subtitle} 训练", f"No {subtitle} sessions found"),
+            localize(f"未找到 {subtitle} 训练", f"No {subtitle} sessions found"),
             ha="center",
             va="center",
             fontsize=12,
@@ -146,10 +146,10 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
     )
 
     ax.set_xlim(0, window_hours * 60)
-    ax.set_xlabel(L("运动开始后分钟数", "Minutes after exercise start"))
-    ax.set_ylabel(L(f"血糖 ({UNIT})", f"Glucose ({UNIT})"))
+    ax.set_xlabel(localize("运动开始后分钟数", "Minutes after exercise start"))
+    ax.set_ylabel(localize(f"血糖 ({UNIT})", f"Glucose ({UNIT})"))
     subtitle = EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)
-    ax.set_title(L(f"运动后 0–{window_hours} 小时的血糖变化 ({subtitle})", f"Glucose change 0–{window_hours}h after exercise ({subtitle})"))
+    ax.set_title(localize(f"运动后 0–{window_hours} 小时的血糖变化 ({subtitle})", f"Glucose change 0–{window_hours}h after exercise ({subtitle})"))
     ax.grid(True, alpha=0.25)
     return metrics
 

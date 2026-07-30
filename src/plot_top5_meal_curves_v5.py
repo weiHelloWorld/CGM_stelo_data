@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from config import UNIT, TEXT_LANGUAGE
-from helper import L
+from helper import localize
 
 SCRIPT_VERSION = "v5-hours-axis-peak-mean-composite-nextmeal2h"
 
@@ -313,9 +313,9 @@ def meal_label(record: dict, rank: int) -> str:
         food = food[:27] + "…"
     return (
         f"{rank}. {date} {record['meal_type']} | {food} "
-        f"| {L('峰值', 'Peak')}+{record['peak']:.0f}，" 
-        f"{L('4h均值', '4h avg')}+{record['mean_inc']:.1f}，"
-        f"{L('综合分', 'Composite score')}{record.get('worst_score', float('nan')):.2f}"
+        f"| {localize('峰值', 'Peak')}+{record['peak']:.0f}，" 
+        f"{localize('4h均值', '4h avg')}+{record['mean_inc']:.1f}，"
+        f"{localize('综合分', 'Composite score')}{record.get('worst_score', float('nan')):.2f}"
     )
 
 
@@ -336,8 +336,8 @@ def plot_group(records: list[dict], title: str, output_path: Path):
     ax.axvline(240, linewidth=0.8, linestyle="--", alpha=0.5)
 
     ax.set_title(title, fontsize=16)
-    ax.set_xlabel(L("餐后时间（小时）", "Time after meal (hours)"))
-    ax.set_ylabel(L(f"相对餐前基线的血糖增量（{UNIT}）", f"Glucose increase from pre-meal baseline ({UNIT})"))
+    ax.set_xlabel(localize("餐后时间（小时）", "Time after meal (hours)"))
+    ax.set_ylabel(localize(f"相对餐前基线的血糖增量（{UNIT}）", f"Glucose increase from pre-meal baseline ({UNIT})"))
     ax.set_xlim(0, 240)
     ax.set_xticks([0, 60, 120, 180, 240])
     ax.set_xticklabels(["0", "1", "2", "3", "4"])
@@ -350,10 +350,10 @@ def plot_group(records: list[dict], title: str, output_path: Path):
 
 def save_selection_csv(worst, stable, output_path: Path):
     fields = [
-        L("分组", "Group"), L("排名", "Rank"), L("餐点时间", "Meal Time"), L("餐次", "Meal Type"), L("食物", "Food"),
-        L("基线", "Baseline"), L("4h增量峰值", "4h Peak Increase"), L("4h平均增量", "4h Avg Increase"), L("综合排序分", "Composite Score"),
-        L("RMS波动", "RMS Variation"), L("最大绝对偏离", "Max Absolute Deviation"),
-        L("距上一餐(h)", "Hours Since Prev Meal"), L("距下一餐(h)", "Hours Until Next Meal"),
+        localize("分组", "Group"), localize("排名", "Rank"), localize("餐点时间", "Meal Time"), localize("餐次", "Meal Type"), localize("食物", "Food"),
+        localize("基线", "Baseline"), localize("4h增量峰值", "4h Peak Increase"), localize("4h平均增量", "4h Avg Increase"), localize("综合排序分", "Composite Score"),
+        localize("RMS波动", "RMS Variation"), localize("最大绝对偏离", "Max Absolute Deviation"),
+        localize("距上一餐(h)", "Hours Since Prev Meal"), localize("距下一餐(h)", "Hours Until Next Meal"),
     ]
     with open(output_path, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
@@ -415,20 +415,20 @@ def main():
 
     plot_group(
         worst,
-        L(f"Top {args.top_n} 最糟糕餐：4小时餐后血糖增量曲线", f"Top {args.top_n} Worst Meals: 4h Postprandial Glucose Increase"),
+        localize(f"Top {args.top_n} 最糟糕餐：4小时餐后血糖增量曲线", f"Top {args.top_n} Worst Meals: 4h Postprandial Glucose Increase"),
         outdir / "Top5_最糟糕餐_曲线图.png",
     )
     plot_group(
         stable,
-        L(f"Top {args.top_n} 最平稳餐：4小时餐后血糖增量曲线", f"Top {args.top_n} Most Stable Meals: 4h Postprandial Glucose Increase"),
+        localize(f"Top {args.top_n} 最平稳餐：4小时餐后血糖增量曲线", f"Top {args.top_n} Most Stable Meals: 4h Postprandial Glucose Increase"),
         outdir / "Top5_最平稳餐_曲线图.png",
     )
     save_selection_csv(
         worst, stable, outdir / "Top5_餐次选择明细.csv"
     )
 
-    print(L(f"干净餐数量: {len(records)}", f"Clean meals: {len(records)}"))
-    print(L("\nTop 最糟糕餐:", "\nTop Worst Meals:"))
+    print(localize(f"干净餐数量: {len(records)}", f"Clean meals: {len(records)}"))
+    print(localize("\nTop 最糟糕餐:", "\nTop Worst Meals:"))
     for i, r in enumerate(worst, 1):
         print(
             f"{i}. {r['time']:%Y-%m-%d %H:%M} | {chinese_food_name(r['food'])} | "
