@@ -100,7 +100,7 @@ def main():
         cgm_df=cgm_df,
         exercise_df=exercise_df,
         output_path=str(OUTPUT_PNG),
-        title='餐后血糖增量（相对餐前水平）',
+        title=localize('餐后血糖增量（相对餐前水平）', 'Post-meal glucose increase (relative to pre-meal level)'),
     )
 
 

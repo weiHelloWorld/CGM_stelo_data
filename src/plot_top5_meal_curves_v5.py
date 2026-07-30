@@ -10,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
-from config import UNIT, TEXT_LANGUAGE
+from config import UNIT, TEXT_LANGUAGE, DATA_DIR, DOWNLOADS_DIR
 from helper import localize
 from English_to_Chinese_map import convert_meal_name_language
 
@@ -57,14 +57,14 @@ def load_meals(path: str) -> list[dict]:
     headers = [str(x).strip() if x is not None else "" for x in next(rows)]
     idx = {name: i for i, name in enumerate(headers)}
 
-    required = ["timestamp", "餐次", "食物"]
+    required = ["Meal_Timestamp", "餐次", "Food"]
     missing = [name for name in required if name not in idx]
     if missing:
         raise ValueError(f"餐食表缺少列: {missing}")
 
     meals = []
     for row in rows:
-        if row[idx["timestamp"]] is None:
+        if row[idx["Meal_Timestamp"]] is None:
             continue
 
         def get(name):
@@ -73,7 +73,7 @@ def load_meals(path: str) -> list[dict]:
 
         meals.append(
             {
-                "time": parse_dt(get("timestamp")),
+                "time": parse_dt(get("Meal_Timestamp")),
                 "meal_type": str(get("餐次") or ""),
                 "food": str(get("食物") or ""),
                 "exercise": str(get("餐后运动") or ""),
@@ -253,56 +253,7 @@ def rank_meals(records: list[dict], n: int = 5):
 def chinese_food_name(food: str) -> str:
     """Translate food name to configured language."""
     return convert_meal_name_language(food)
-    exact = {
-        "Kung Pao chicken with white rice": "宫保鸡丁配白米饭",
-        "Chow mein, mushroom chicken, Beijing beef": "炒面、蘑菇鸡肉、北京牛肉",
-        "Sardine, 300g sweet potato": "沙丁鱼配300克红薯",
-        "2 eggs, instant ramen": "两个鸡蛋配方便面",
-        "75g pasta with tomato sauce, shrimp, mushrooms": "75克意面配番茄酱、虾和蘑菇",
-        "chobani zero sugar yogurt + pistachios": "Chobani零糖酸奶配开心果",
-        "Orange, Oikos yogurt, milk": "橙子、Oikos酸奶和牛奶",
-        "Pistachio, Oikos Triple Zero yogurt, milk": "开心果、Oikos零糖酸奶和牛奶",
-        "1/2 cup oatmeal, milk, protein powder": "半杯燕麦、牛奶和蛋白粉",
-        "1/2 cup of oats, milk, protein powder": "半杯燕麦、牛奶和蛋白粉",
-        "Pepperoni pizza": "意大利辣香肠披萨",
-        "oikos triple zero mixed berry": "Oikos零糖混合莓果酸奶",
-    }
-    if food in exact:
-        return exact[food]
-
-    replacements = [
-        ("Kung Pao chicken", "宫保鸡丁"),
-        ("white rice", "白米饭"),
-        ("Chow mein", "炒面"),
-        ("chow mein", "炒面"),
-        ("mushroom chicken", "蘑菇鸡肉"),
-        ("Beijing beef", "北京牛肉"),
-        ("Sardine", "沙丁鱼"),
-        ("sardine", "沙丁鱼"),
-        ("sweet potato", "红薯"),
-        ("instant ramen", "方便面"),
-        ("eggs", "鸡蛋"),
-        ("egg", "鸡蛋"),
-        ("pasta", "意面"),
-        ("tomato sauce", "番茄酱"),
-        ("shrimp", "虾"),
-        ("mushrooms", "蘑菇"),
-        ("mushroom", "蘑菇"),
-        ("Orange", "橙子"),
-        ("orange", "橙子"),
-        ("yogurt", "酸奶"),
-        ("milk", "牛奶"),
-        ("protein powder", "蛋白粉"),
-        ("pistachios", "开心果"),
-        ("Pistachio", "开心果"),
-        ("oatmeal", "燕麦"),
-        ("oats", "燕麦"),
-        ("cup", "杯"),
-    ]
-    result = food
-    for src, dst in replacements:
-        result = result.replace(src, dst)
-    return result
+    
 
 def meal_label(record: dict, rank: int) -> str:
     date = record["time"].strftime("%m/%d %H:%M")
@@ -347,32 +298,33 @@ def plot_group(records: list[dict], title: str, output_path: Path):
 
 
 def save_selection_csv(worst, stable, output_path: Path):
+    _ = localize
     fields = [
-        localize("分组", "Group"), localize("排名", "Rank"), localize("餐点时间", "Meal Time"), localize("餐次", "Meal Type"), localize("食物", "Food"),
-        localize("基线", "Baseline"), localize("4h增量峰值", "4h Peak Increase"), localize("4h平均增量", "4h Avg Increase"), localize("综合排序分", "Composite Score"),
-        localize("RMS波动", "RMS Variation"), localize("最大绝对偏离", "Max Absolute Deviation"),
-        localize("距上一餐(h)", "Hours Since Prev Meal"), localize("距下一餐(h)", "Hours Until Next Meal"),
+        _("分组", "Group"), _("排名", "Rank"), _("餐点时间", "Meal Time"), _("餐次", "Meal Type"), _("食物", "Food"),
+        _("基线", "Baseline"), _("4h增量峰值", "4h Peak Increase"), _("4h平均增量", "4h Avg Increase"), _("综合排序分", "Composite Score"),
+        _("RMS波动", "RMS Variation"), _("最大绝对偏离", "Max Absolute Deviation"),
+        _("距上一餐(h)", "Hours Since Prev Meal"), _("距下一餐(h)", "Hours Until Next Meal"),
     ]
     with open(output_path, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
-        for group_name, group in [("Top 5 最糟糕", worst), ("Top 5 最平稳", stable)]:
+        for group_name, group in [(_("Top 5 最糟糕", "Top 5 Worst"), worst), (_("Top 5 最平稳", "Top 5 Most Stable"), stable)]:
             for rank, r in enumerate(group, start=1):
                 writer.writerow(
                     {
-                        "分组": group_name,
-                        "排名": rank,
-                        "餐点时间": r["time"].strftime("%Y-%m-%d %H:%M"),
-                        "餐次": r["meal_type"],
-                        "食物": chinese_food_name(r["food"]),
-                        "基线": round(r["baseline"], 1),
-                        "4h增量峰值": round(r["peak"], 1),
-                        "4h平均增量": round(r["mean_inc"], 1),
-                        "综合排序分": round(r.get("worst_score", float("nan")), 3),
-                        "RMS波动": round(r["rms_excursion"], 1),
-                        "最大绝对偏离": round(r["max_abs_excursion"], 1),
-                        "距上一餐(h)": round(r["prev_gap"], 2),
-                        "距下一餐(h)": round(r["next_gap"], 2),
+                        _("分组", "Group"): group_name,
+                        _("排名", "Rank"): rank,
+                        _("餐点时间", "Meal Time"): r["time"].strftime("%Y-%m-%d %H:%M"),
+                        _("餐次", "Meal Type"): r["meal_type"],
+                        _("食物", "Food"): chinese_food_name(r["food"]),
+                        _("基线", "Baseline"): round(r["baseline"], 1),
+                        _("4h增量峰值", "4h Peak Increase"): round(r["peak"], 1),
+                        _("4h平均增量", "4h Avg Increase"): round(r["mean_inc"], 1),
+                        _("综合排序分", "Composite Score"): round(r.get("worst_score", float("nan")), 3),
+                        _("RMS波动", "RMS Variation"): round(r["rms_excursion"], 1),
+                        _("最大绝对偏离", "Max Absolute Deviation"): round(r["max_abs_excursion"], 1),
+                        _("距上一餐(h)", "Hours Since Prev Meal"): round(r["prev_gap"], 2),
+                        _("距下一餐(h)", "Hours Until Next Meal"): round(r["next_gap"], 2),
                     }
                 )
 
@@ -382,9 +334,9 @@ def main():
     parser = argparse.ArgumentParser(
         description="自动选择并绘制Top 5最糟糕餐与Top 5最平稳餐的4小时增量曲线。"
     )
-    parser.add_argument("--cgm", default='./Clarity_Export_Chen_Wei_2026-07-03_145534.csv', help="Clarity CGM CSV")
-    parser.add_argument("--meals", default='./Stelo_CGM_餐食记录模板.xlsx', help="餐食记录 XLSX")
-    parser.add_argument("--outdir", default="./output", help="输出目录")
+    parser.add_argument("--cgm", default=str(DATA_DIR / "Clarity_Export_Chen_Wei_2026-07-03_145534.csv"), help="Clarity CGM CSV")
+    parser.add_argument("--meals", default=str(DATA_DIR / "Food_track_202606.xlsx"), help=localize("餐食记录 XLSX", "Meal log XLSX"))
+    parser.add_argument("--outdir", default=str(DOWNLOADS_DIR), help=localize("输出目录", "Output directory"))
     parser.add_argument("--top-n", type=int, default=5)
     parser.add_argument(
         "--include-glucose-test",
