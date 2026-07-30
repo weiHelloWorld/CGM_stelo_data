@@ -291,7 +291,7 @@ def plot_breakfast_scatter(df, outdir):
 
     ax.set_title(localize("所有早餐：4h平均增量 vs 2h峰值", "All breakfasts: 4h avg increase vs 2h peak"), fontsize=20)
     ax.set_xlabel(localize(f"4h平均增量（{UNIT}，相对餐前基线）", f"4h avg increase ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
-    ax.set_ylabel(localize(f"2h峰值高度（{UNIT}，相对餐前基线）", f"2h peak height ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
+    ax.set_ylabel(localize(f"2h峰值高度（{UNIT}，相对餐前基线）", f"peak ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
     ax.grid(alpha=0.3)
     ax.legend(fontsize=8, loc="best")
 
