@@ -133,7 +133,7 @@ Chinese_to_English_map = {
     "带骨烤鸭": "bone-in roast duck",
     "辣子鸡": "spicy chicken",
     "盐水鸭": "salt water duck",
-    "半份盐水鸭": "half portion salt water duck",
+    "半份盐水鸭": "1/2 salt water duck",
     "酸菜鱼": "sour cabbage fish",
     "黑鱼": "black fish",
     "金鲳鱼": "golden pomfret",
@@ -159,10 +159,11 @@ Chinese_to_English_map = {
     "肉松": "meat floss",
     "益力多": "yakult",
     "鸡": "chicken",
+    "Weee": '',
     # Measure words (remove)
     "个": " ",
     # Quantity qualifiers (trailing space avoids gluing words)
-    "半份": "half portion ",
+    "半份": "1/2 ",
     "粉包": "noodle seasoning packet",
     "调料": " seasoning",
     # Punctuation / connectors

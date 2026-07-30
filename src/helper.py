@@ -126,15 +126,15 @@ def plot_glucose_increase_for_meals(
         meal_time = meal['meal_time']
 
         food_name_display = convert_meal_name_language(meal['food'])
-        short_food = food_name_display[:40] + '...' if len(food_name_display) > 40 else food_name_display
+        short_food = food_name_display[:100] + '...' if len(food_name_display) > 100 else food_name_display
 
         carbs_value = meal['carbs']
         if pd.isna(carbs_value):
-            carbs_display = localize('未知', 'unknown')
+            carbs_part = ""
         else:
-            carbs_display = f"{carbs_value:.0f}g"
+            carbs_part = f" | {localize('碳水', 'carbs')} = {carbs_value:.0f}g"
 
-        label = f"{short_food} | {localize('碳水', 'carbs')} = {carbs_display}"
+        label = f"{short_food}{carbs_part}"
 
         interruption_candidates = []
         if not exercise_df.empty:
