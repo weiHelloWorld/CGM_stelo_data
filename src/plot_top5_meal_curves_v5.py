@@ -75,7 +75,7 @@ def load_meals(path: str) -> list[dict]:
             {
                 "time": parse_dt(get("Meal_Timestamp")),
                 "meal_type": str(get("餐次") or ""),
-                "food": str(get("食物") or ""),
+                "food": str(get("Food") or ""),
                 "exercise": str(get("餐后运动") or ""),
                 "notes": str(get("备注") or ""),
             }
@@ -255,16 +255,20 @@ def chinese_food_name(food: str) -> str:
     return convert_meal_name_language(food)
     
 
+def _mt(meal_type: str) -> str:
+    """Translate meal type (早餐/午餐/晚餐/加餐) to configured language."""
+    return localize(meal_type, {"早餐": "Breakfast", "午餐": "Lunch", "晚餐": "Dinner", "加餐": "Snack"}.get(meal_type, meal_type))
+
 def meal_label(record: dict, rank: int) -> str:
-    date = record["time"].strftime("%m/%d %H:%M")
+    date = record["time"].strftime("%m/%d")
     food = chinese_food_name(record["food"].replace("\n", " "))
-    if len(food) > 28:
-        food = food[:27] + "…"
+    if len(food) > 100:
+        food = food[:100] + "…"
     return (
-        f"{rank}. {date} {record['meal_type']} | {food} "
+        f"{rank}. {date} {_mt(record['meal_type'])} | {food} "
         f"| {localize('峰值', 'Peak')}+{record['peak']:.0f}，" 
         f"{localize('4h均值', '4h avg')}+{record['mean_inc']:.1f}，"
-        f"{localize('综合分', 'Composite score')}{record.get('worst_score', float('nan')):.2f}"
+        f"{localize('综合分', 'Score = ')}{record.get('worst_score', float('nan')):.2f}"
     )
 
 
@@ -315,7 +319,7 @@ def save_selection_csv(worst, stable, output_path: Path):
                         _("分组", "Group"): group_name,
                         _("排名", "Rank"): rank,
                         _("餐点时间", "Meal Time"): r["time"].strftime("%Y-%m-%d %H:%M"),
-                        _("餐次", "Meal Type"): r["meal_type"],
+                        _("餐次", "Meal Type"): _mt(r["meal_type"]),
                         _("食物", "Food"): chinese_food_name(r["food"]),
                         _("基线", "Baseline"): round(r["baseline"], 1),
                         _("4h增量峰值", "4h Peak Increase"): round(r["peak"], 1),
@@ -365,12 +369,12 @@ def main():
 
     plot_group(
         worst,
-        localize(f"Top {args.top_n} 最糟糕餐：4小时餐后血糖增量曲线", f"Top {args.top_n} Worst Meals: 4h Postprandial Glucose Increase"),
+        localize(f"Top {args.top_n} 最糟糕餐", f"Top {args.top_n} Worst Meals"),
         outdir / "Top5_最糟糕餐_曲线图.png",
     )
     plot_group(
         stable,
-        localize(f"Top {args.top_n} 最平稳餐：4小时餐后血糖增量曲线", f"Top {args.top_n} Most Stable Meals: 4h Postprandial Glucose Increase"),
+        localize(f"Top {args.top_n} 最平稳餐", f"Top {args.top_n} Most Stable Meals"),
         outdir / "Top5_最平稳餐_曲线图.png",
     )
     save_selection_csv(

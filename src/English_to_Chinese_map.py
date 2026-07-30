@@ -140,7 +140,7 @@ Chinese_to_English_map = {
     "跳跳鱼": "jumping fish",
     "三峡人家跳跳鱼": "Three Gorges Family jumping fish",
     "炒饭": "fried rice",
-    "螺蛳粉": "luosifen (snail noodles)",
+    "螺蛳粉": "Rice Noodles",
     "水煮鱼": "boiled fish in chili",
     "麻婆豆腐": "Mapo Tofu",
     "好人家麻婆豆腐调料": "Haorenjia Mapo Tofu seasoning",
