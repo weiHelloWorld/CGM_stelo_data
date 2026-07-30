@@ -10,9 +10,8 @@ from English_to_Chinese_map import convert_meal_name_language
 PLOT_75G_GLUCOSE = False
 glucose_file = str(DATA_DIR / "Clarity_Export_Chen_Wei_2026-07-03_145534.csv")
 meal_file = str(DATA_DIR / "Food_track_202606.xlsx")
+outdir = str(DOWNLOADS_DIR)
 
-out_png = str(DOWNLOADS_DIR / ("4h平均增量_vs_2h峰值高度_人工中文_全标注_去掉葡萄糖.png" if not PLOT_75G_GLUCOSE else "4h平均增量_vs_2h峰值高度_人工中文_全标注_去掉葡萄糖_包括75g葡萄糖.png"))
-out_csv = str(DOWNLOADS_DIR / ("每餐血糖指标_4h平均增量_vs_2h峰值高度_人工中文_全标注_去掉葡萄糖.csv" if not PLOT_75G_GLUCOSE else "每餐血糖指标_4h平均增量_vs_2h峰值高度_人工中文_全标注_去掉葡萄糖_包括75g葡萄糖.csv"))
 
 font_path = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
 font_bold_path = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
@@ -126,71 +125,84 @@ def _place_labels(ax, label_df, font_prop, x_col="4h平均增量_mg_dL", y_col="
                     bbox=dict(boxstyle="round,pad=0.12", fc="white", alpha=0.85, ec="none"))
 
 
-glucose = load_glucose(glucose_file)
-meals = load_meals(meal_file)
+def run_plot(include_glucose):
+    out_png = outdir + "/" + ("4h平均增量_vs_2h峰值高度_包括75g葡萄糖.png" if include_glucose else "4h平均增量_vs_2h峰值高度.png")
+    out_csv = outdir + "/" + ("每餐血糖指标_4h平均增量_vs_2h峰值高度_包括75g葡萄糖.csv" if include_glucose else "每餐血糖指标_4h平均增量_vs_2h峰值高度.csv")
 
-records = []
-for i, meal in meals.iterrows():
-    meal_time = meal["timestamp"]
-    food = meal["Food"]
-    next_time = meals.iloc[i+1]["timestamp"] if i < len(meals)-1 else pd.NaT
+    glucose = load_glucose(glucose_file)
+    meals = load_meals(meal_file)
 
-    baseline = baseline_before_meal(glucose, meal_time, 15)
-    m2 = compute_window_metrics(glucose, meal_time, baseline, 2)
-    m4 = compute_window_metrics(glucose, meal_time, baseline, 4)
+    records = []
+    for i, meal in meals.iterrows():
+        meal_time = meal["timestamp"]
+        food = meal["Food"]
+        next_time = meals.iloc[i+1]["timestamp"] if i < len(meals)-1 else pd.NaT
 
-    contam_2h_peak = bool(pd.notna(next_time) and pd.notna(m2["peak_timestamp"]) and next_time <= m2["peak_timestamp"])
-    contam_4h_avg = bool(pd.notna(next_time) and next_time < meal_time + pd.Timedelta(hours=4))
+        baseline = baseline_before_meal(glucose, meal_time, 15)
+        m2 = compute_window_metrics(glucose, meal_time, baseline, 2)
+        m4 = compute_window_metrics(glucose, meal_time, baseline, 4)
 
-    if contam_2h_peak and contam_4h_avg:
-        pollution_tag = localize("双污染（已去掉）", "Both contaminated (removed)")
-    elif contam_2h_peak:
-        pollution_tag = localize("2h峰值污染", "2h peak contaminated")
-    elif contam_4h_avg:
-        pollution_tag = localize("4h平均污染", "4h avg contaminated")
-    else:
-        pollution_tag = localize("未污染", "Clean")
+        contam_2h_peak = bool(pd.notna(next_time) and pd.notna(m2["peak_timestamp"]) and next_time <= m2["peak_timestamp"])
+        contam_4h_avg = bool(pd.notna(next_time) and next_time < meal_time + pd.Timedelta(hours=4))
 
-    records.append({
-        "timestamp": meal_time,
-        "食物": translate_food(food),
-        "2h峰值高度_mg_dL": m2["peak_inc"],
-        "2h峰值可能污染": contam_2h_peak,
-        "4h平均增量_mg_dL": m4["avg_inc"],
-        "4h平均增量可能污染": contam_4h_avg,
-        "污染标记": pollution_tag,
-    })
+        if contam_2h_peak and contam_4h_avg:
+            pollution_tag = localize("双污染（已去掉）", "Both contaminated (removed)")
+        elif contam_2h_peak:
+            pollution_tag = localize("2h峰值污染", "2h peak contaminated")
+        elif contam_4h_avg:
+            pollution_tag = localize("4h平均污染", "4h avg contaminated")
+        else:
+            pollution_tag = localize("未污染", "Clean")
 
-result = pd.DataFrame(records)
-plot_df = result[~((result["2h峰值可能污染"]) & (result["4h平均增量可能污染"]))].copy()
-if not PLOT_75G_GLUCOSE:
-    plot_df = plot_df[plot_df["食物"] != "75g glucose"].copy()
-plot_df = plot_df.dropna(subset=["2h峰值高度_mg_dL", "4h平均增量_mg_dL"]).reset_index(drop=True)
-plot_df["标签优先级"] = plot_df["2h峰值高度_mg_dL"] + 1.2 * plot_df["4h平均增量_mg_dL"]
-label_df = plot_df.sort_values("标签优先级", ascending=False).reset_index(drop=True)
-plot_df.to_csv(out_csv, index=False, encoding="utf-8-sig")
+        records.append({
+            "timestamp": meal_time,
+            "食物": translate_food(food),
+            "2h峰值高度_mg_dL": m2["peak_inc"],
+            "2h峰值可能污染": contam_2h_peak,
+            "4h平均增量_mg_dL": m4["avg_inc"],
+            "4h平均增量可能污染": contam_4h_avg,
+            "污染标记": pollution_tag,
+        })
 
-cat_clean = plot_df[(~plot_df["2h峰值可能污染"]) & (~plot_df["4h平均增量可能污染"])]
-cat_peak_only = plot_df[(plot_df["2h峰值可能污染"]) & (~plot_df["4h平均增量可能污染"])]
-cat_avg_only = plot_df[(~plot_df["2h峰值可能污染"]) & (plot_df["4h平均增量可能污染"])]
+    result = pd.DataFrame(records)
+    plot_df = result[~((result["2h峰值可能污染"]) & (result["4h平均增量可能污染"]))].copy()
+    if not include_glucose:
+        plot_df = plot_df[plot_df["食物"] != "75g glucose"].copy()
+    plot_df = plot_df.dropna(subset=["2h峰值高度_mg_dL", "4h平均增量_mg_dL"]).reset_index(drop=True)
+    plot_df["标签优先级"] = plot_df["2h峰值高度_mg_dL"] + 1.2 * plot_df["4h平均增量_mg_dL"]
+    label_df = plot_df.sort_values("标签优先级", ascending=False).reset_index(drop=True)
+    plot_df.to_csv(out_csv, index=False, encoding="utf-8-sig")
 
-fig, ax = plt.subplots(figsize=(18, 13))
-ax.scatter(cat_clean["4h平均增量_mg_dL"], cat_clean["2h峰值高度_mg_dL"], marker="o", s=55, label=localize("未污染", "Clean"))
-ax.scatter(cat_avg_only["4h平均增量_mg_dL"], cat_avg_only["2h峰值高度_mg_dL"], marker="s", s=55, label=localize("只污染 4h 平均增量", "4h avg contaminated"))
+    cat_clean = plot_df[(~plot_df["2h峰值可能污染"]) & (~plot_df["4h平均增量可能污染"])]
+    cat_peak_only = plot_df[(plot_df["2h峰值可能污染"]) & (~plot_df["4h平均增量可能污染"])]
+    cat_avg_only = plot_df[(~plot_df["2h峰值可能污染"]) & (plot_df["4h平均增量可能污染"])]
 
-# Lock layout BEFORE label placement so display-pixel coordinates are final
-plt.tight_layout()
-fig.canvas.draw()
-_place_labels(ax, label_df, font_prop)
+    fig, ax = plt.subplots(figsize=(18, 13))
+    ax.scatter(cat_clean["4h平均增量_mg_dL"], cat_clean["2h峰值高度_mg_dL"], marker="o", s=55, label=localize("未污染", "Clean"))
+    ax.scatter(cat_avg_only["4h平均增量_mg_dL"], cat_avg_only["2h峰值高度_mg_dL"], marker="s", s=55, label=localize("只污染 4h 平均增量", "4h avg contaminated"))
 
-ax.set_xlabel(localize(f"4h 平均增量（{UNIT}）", f"4h Avg Increase ({UNIT})"), fontproperties=font_prop, fontsize=20)
-ax.set_ylabel(localize(f"2h 峰值高度（{UNIT}）", f"2h Peak Height ({UNIT})"), fontproperties=font_prop, fontsize=20)
-ax.set_title(localize("2h 峰值高度 vs 4h 平均增量", "2h Peak Height vs 4h Avg Increase"), fontproperties=font_bold, fontsize=20)
-legend = ax.legend(prop=font_prop, loc="upper left")
-for text in legend.get_texts():
-    text.set_fontproperties(font_prop)
-for label in ax.get_xticklabels() + ax.get_yticklabels():
-    label.set_fontproperties(font_prop)
-ax.grid(True, alpha=0.25)
-plt.savefig(out_png, dpi=240, bbox_inches="tight")
+    # Lock layout BEFORE label placement so display-pixel coordinates are final
+    plt.tight_layout()
+    fig.canvas.draw()
+    _place_labels(ax, label_df, font_prop)
+
+    ax.set_xlabel(localize(f"4h 平均增量（{UNIT}）", f"4h Avg Increase ({UNIT})"), fontproperties=font_prop, fontsize=20)
+    ax.set_ylabel(localize(f"2h 峰值高度（{UNIT}）", f"2h Peak Height ({UNIT})"), fontproperties=font_prop, fontsize=20)
+    ax.set_title(localize("2h 峰值高度 vs 4h 平均增量", "2h Peak Height vs 4h Avg Increase"), fontproperties=font_bold, fontsize=20)
+    legend = ax.legend(prop=font_prop, loc="upper left")
+    for text in legend.get_texts():
+        text.set_fontproperties(font_prop)
+    for label in ax.get_xticklabels() + ax.get_yticklabels():
+        label.set_fontproperties(font_prop)
+    ax.grid(True, alpha=0.25)
+    plt.savefig(out_png, dpi=240, bbox_inches="tight")
 # plt.show()
+
+
+def main():
+    run_plot(include_glucose=False)
+    run_plot(include_glucose=True)
+
+
+if __name__ == "__main__":
+    main()
