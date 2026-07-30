@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
+from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE, DATA_DIR, DOWNLOADS_DIR
 from helper import localize
 
 SCRIPT_VERSION = "v2-resistance-1h-increment-filter-start-glucose-140"
@@ -93,8 +93,8 @@ def is_activity(a, activity_type):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cgm", default='./Clarity_Export_Chen_Wei_2026-07-03_145534.csv', help="Clarity CGM CSV")
-    parser.add_argument("--outdir", default="./output", help="输出目录")
+    parser.add_argument("--cgm", default=str(DATA_DIR / "Clarity_Export_Chen_Wei_2026-07-03_145534.csv"), help="Clarity CGM CSV")
+    parser.add_argument("--outdir", default=str(DOWNLOADS_DIR), help=localize("输出目录", "Output directory"))
     parser.add_argument("--max-start-glucose", type=float, default=140.0, help="排除开始附近血糖大于该值的 resistance")
     parser.add_argument("--activity_type", type=str, default="resistance", help="活动类型")
     args = parser.parse_args()
@@ -138,7 +138,7 @@ def main():
 
         hours = np.array([(t - start).total_seconds() / 3600 for t in ts1], dtype=float)
         inc = np.asarray(vals1, dtype=float) - baseline
-        label = f'{start.strftime("%m/%d %H:%M")} {args.activity_type} {act["duration"]}, start={baseline:.0f}'
+        label = f'{start.strftime("%m/%d")} {args.activity_type}, start glucose={baseline:.0f}'
         ax.plot(hours, inc, linewidth=2, label=label)
 
         for h, t, g, delta in zip(hours, ts1, vals1, inc):
@@ -165,7 +165,7 @@ def main():
         })
 
     ax.axhline(0, linewidth=1)
-    ax.set_xlabel(localize("运动开始后时间（小时）", "Time after exercise start (hours)"), fontsize=20)
+    ax.set_xlabel(localize("运动开始后时间（小时）", "Time since start(hours)"), fontsize=20)
     ax.set_ylabel(localize(f"血糖增量（{UNIT}）", f"Glucose Increase ({UNIT})"), fontsize=20)
     ax.set_xlim(0, 1)
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
