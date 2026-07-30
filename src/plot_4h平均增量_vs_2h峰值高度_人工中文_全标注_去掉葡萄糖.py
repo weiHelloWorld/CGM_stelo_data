@@ -3,16 +3,16 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
-from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
+from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE, DATA_DIR, DOWNLOADS_DIR
 from helper import localize
 from English_to_Chinese_map import convert_meal_name_language
 
 PLOT_75G_GLUCOSE = True
-glucose_file = r"./Clarity_Export_Chen_Wei_2026-07-03_145534.csv"
-meal_file = r"./Stelo_CGM_餐食记录模板.xlsx"
+glucose_file = str(DATA_DIR / "Clarity_Export_Chen_Wei_2026-07-03_145534.csv")
+meal_file = str(DATA_DIR / "Food_track_202606.xlsx")
 
-out_png = r"./output/4h平均增量_vs_2h峰值高度_人工中文_全标注_去掉葡萄糖.png" if not PLOT_75G_GLUCOSE else r"./output/4h平均增量_vs_2h峰值高度_人工中文_全标注_去掉葡萄糖_包括75g葡萄糖.png"
-out_csv = r"./output/每餐血糖指标_4h平均增量_vs_2h峰值高度_人工中文_全标注_去掉葡萄糖.csv" if not PLOT_75G_GLUCOSE else r"./output/每餐血糖指标_4h平均增量_vs_2h峰值高度_人工中文_全标注_去掉葡萄糖_包括75g葡萄糖.csv"
+out_png = str(DOWNLOADS_DIR / ("4h平均增量_vs_2h峰值高度_人工中文_全标注_去掉葡萄糖.png" if not PLOT_75G_GLUCOSE else "4h平均增量_vs_2h峰值高度_人工中文_全标注_去掉葡萄糖_包括75g葡萄糖.png"))
+out_csv = str(DOWNLOADS_DIR / ("每餐血糖指标_4h平均增量_vs_2h峰值高度_人工中文_全标注_去掉葡萄糖.csv" if not PLOT_75G_GLUCOSE else "每餐血糖指标_4h平均增量_vs_2h峰值高度_人工中文_全标注_去掉葡萄糖_包括75g葡萄糖.csv"))
 
 font_path = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
 font_bold_path = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
@@ -32,8 +32,10 @@ def load_glucose(path):
 
 def load_meals(path):
     m = pd.read_excel(path, sheet_name=0)
-    m["timestamp"] = pd.to_datetime(m["timestamp"], errors="coerce")
-    m = m.dropna(subset=["timestamp"]).sort_values("timestamp").reset_index(drop=True)
+    ts_col = "Meal_Timestamp" if "Meal_Timestamp" in m.columns else "timestamp"
+    m[ts_col] = pd.to_datetime(m[ts_col], errors="coerce")
+    m = m.dropna(subset=[ts_col]).sort_values(ts_col).reset_index(drop=True)
+    m.rename(columns={ts_col: "timestamp"}, inplace=True)
     return m
 
 def baseline_before_meal(glucose_df, meal_time, lookback_min=15):
@@ -79,67 +81,6 @@ def shorten_label(s, max_len=14):
     s = str(s)
     return s if len(s) <= max_len else s[:max_len - 1] + "…"
 
-EXACT_FOOD_MAP = {
-    "三峡人家跳跳鱼": "三峡人家跳跳鱼",
-    "lettuce, 200g tofu, 2% fat milk": "生菜、豆腐 200g、2% 牛奶",
-    "chobani zero sugar yogurt + orange + 2% fat milk": "Chobani 零糖酸奶、橙子、2% 牛奶",
-    "1/2 cup oats + 250 mL 2% milk + 15 g protein powder": "半杯燕麦、250mL 2% 牛奶、15g 蛋白粉",
-    "pasta with tomato sauce and pork": "番茄猪肉意面",
-    "chobani zero sugar yogurt": "Chobani 零糖酸奶",
-    "yakult light drink": "低糖养乐多",
-    "lettuce, imitation crab meat, pistachios": "生菜、蟹肉棒、开心果",
-    "Oatmeal, milk, protein powder": "燕麦、牛奶、蛋白粉",
-    "Chow mein, mushroom chicken, Beijing beef": "炒面、蘑菇鸡、北京牛",
-    "Apple": "苹果",
-    "Lettuce, fish tofu": "生菜、鱼豆腐",
-    "chobani zero sugar yogurt + pistachios": "Chobani 零糖酸奶、开心果",
-    "1/2 cup of oatmeal with protein powder and milk": "半杯燕麦、蛋白粉、牛奶",
-    "Pistachio": "开心果",
-    "Pepperoni pizza": "意式辣香肠披萨",
-    "Eggs, Pocky": "鸡蛋、百奇",
-    "oikos triple zero mixed berry + 2% fat milk": "Oikos 三零混合莓酸奶、2% 牛奶",
-    "Half cup of oatmeal, milk, and protein powder": "半杯燕麦、牛奶、蛋白粉",
-    "Weee 半份辣子鸡": "Weee 半份辣子鸡",
-    "Weee 盐水鸭半份": "Weee 半份盐水鸭",
-    "Swiss roll": "瑞士卷",
-    "oikos triple zero mixed berry": "Oikos 三零混合莓酸奶",
-    "3/8 cup oatmeal, milk, protein powder": "3/8 杯燕麦、牛奶、蛋白粉",
-    "zero suger coke": "零糖可乐",
-    "Kung Pao chicken with white rice": "宫保鸡丁配白米饭",
-    "Oikos Triple Zero strawberry flavored nonfat yogurt, 2% fat milk": "Oikos 三零草莓酸奶、2% 牛奶",
-    "1/2 cup of oats, milk, protein powder": "半杯燕麦、牛奶、蛋白粉",
-    "Weee 半份盐水鸭，瑞士卷": "Weee 半份盐水鸭、瑞士卷",
-    "Mixed berry Oikos Triple Zero yogurt": "Oikos 三零混合莓酸奶",
-    "螺蛳粉 2/3 粉包，猪肉，包菜": "螺蛳粉 2/3 粉包、猪肉、包菜",
-    "Pistachio, Oikos Triple Zero yogurt, milk": "开心果、Oikos 三零酸奶、牛奶",
-    "1/2 cup oats, milk, protein powder": "半杯燕麦、牛奶、蛋白粉",
-    "2 eggs, instant ramen": "2 个鸡蛋、方便面",
-    "辛拉面，猪肉，海带": "辛拉面、猪肉、海带",
-    "Oikos Triple Zero strawberry flavored yogurt": "Oikos 三零草莓酸奶",
-    "1/2 oatmeal, milk, protein powder": "半份燕麦、牛奶、蛋白粉",
-    "Sardine, 300g sweet potato": "沙丁鱼、300g 红薯",
-    "Lettuce, 半份 pork bbq": "生菜、半份叉烧",
-    "Orange, Oikos yogurt, milk": "橙子、Oikos 酸奶、牛奶",
-    "1/2 cup oatmeal, milk, protein powder": "半杯燕麦、牛奶、蛋白粉",
-    "Half pork bbq, Swiss roll": "半份叉烧、瑞士卷",
-    "包菜，虾，螺蛳粉（2/3 粉包）": "包菜、虾、螺蛳粉（2/3 粉包）",
-    "Orange, yogurt, milk": "橙子、酸奶、牛奶",
-    "1/2 pizza": "半个披萨",
-    "1/2 烤鸭，瑞士卷": "半份烤鸭、瑞士卷",
-    "Chobani yogurt, milk": "Chobani 酸奶、牛奶",
-    "75g glucose": "75g 葡萄糖",
-    "190g 炒饭，开心果": "190g 炒饭、开心果",
-    "Pistachios, Chobani yogurt": "开心果、Chobani 酸奶",
-    "6 shrimp tempura, Swiss roll": "6 只炸虾天妇罗、瑞士卷",
-    "Orange, Chobani yogurt": "橙子、Chobani 酸奶",
-    "6 shrimp tempura, Chobani yogurt": "6 只炸虾天妇罗、Chobani 酸奶",
-    "开心果": "开心果",
-    "75g pasta with tomato sauce, shrimp, mushrooms": "75g 番茄虾仁蘑菇意面",
-    "Orange, milk": "橙子、牛奶",
-    "鱼豆腐，包菜，蘑菇，苹果": "鱼豆腐、包菜、蘑菇、苹果",
-    "2/3 螺蛳粉，生菜，蘑菇，鸡蛋": "2/3 螺蛳粉、生菜、蘑菇、鸡蛋",
-    "肉松，Chobani yogurt，milk": "肉松、Chobani 酸奶、牛奶",
-}
 
 def translate_food(text):
     s = "" if pd.isna(text) else str(text).strip()
@@ -151,7 +92,7 @@ meals = load_meals(meal_file)
 records = []
 for i, meal in meals.iterrows():
     meal_time = meal["timestamp"]
-    food = meal["食物"] if "食物" in meals.columns else f"第{i+1}餐"
+    food = meal["Food"]
     next_time = meals.iloc[i+1]["timestamp"] if i < len(meals)-1 else pd.NaT
 
     baseline = baseline_before_meal(glucose, meal_time, 15)
@@ -204,7 +145,7 @@ for _, row in label_df.iterrows():
     x = row["4h平均增量_mg_dL"]
     y = row["2h峰值高度_mg_dL"]
     # suffix = "（2h?）" if row["2h峰值可能污染"] else ("（4h?）" if row["4h平均增量可能污染"] else "")
-    label = shorten_label(row["食物_中文"], 14) # + suffix
+    label = shorten_label(row["食物_中文"], 50) # + suffix
     candidates = [
         (0.5, 0.9), (0.9, -1.0), (-0.9, 1.0), (-0.9, -1.0),
         (1.4, 0.2), (-1.4, 0.2), (0.2, 1.7), (0.2, -1.7),
