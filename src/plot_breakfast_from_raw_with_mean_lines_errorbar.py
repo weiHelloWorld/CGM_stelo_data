@@ -218,7 +218,7 @@ def plot_breakfast_scatter(df, outdir):
         sc = ax.scatter(
             sub[localize("4h平均增量", "4h avg increase")],
             sub[localize("2h峰值", "2h peak")],
-            label=localize(f"{label} 原始点 (n={len(sub)})", f"{label} original (n={len(sub)})"),
+            label=localize(f"{label} 原始点 (n={len(sub)})", f"{label} (n={len(sub)})"),
             s=55,
             alpha=0.75,
         )

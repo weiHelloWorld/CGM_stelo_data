@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from openpyxl import load_workbook
-from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE
+from config import MG_DL_TO_MMOL_L, UNIT, TEXT_LANGUAGE, DATA_DIR, DOWNLOADS_DIR
 from helper import localize
 
 SCRIPT_VERSION = "v1-breakfast-average-increment-curves-by-activity"
@@ -55,25 +55,27 @@ def load_meals(meals_path):
     rows = ws.iter_rows(values_only=True)
     headers = [str(x).strip() if x is not None else "" for x in next(rows)]
     idx = {name: i for i, name in enumerate(headers)}
-    required = ["timestamp", "餐次", "食物"]
+    ts_col = "Meal_Timestamp" if "Meal_Timestamp" in idx else "timestamp"
+    food_col = "食物" if "食物" in idx else "Food"
+    required = [ts_col, "餐次", food_col]
     missing = [c for c in required if c not in idx]
     if missing:
-        raise ValueError(f"餐食 Excel 缺少列: {missing}")
+        raise ValueError(localize(f"餐食 Excel 缺少列: {missing}", f"Meal Excel missing columns: {missing}"))
     meals = []
     for row in rows:
-        ts = row[idx["timestamp"]]
+        ts = row[idx[ts_col]]
         if ts is None:
             continue
         def get(name):
             i = idx.get(name)
             return row[i] if i is not None and i < len(row) else None
-        meal_time = parse_dt(get("timestamp"))
+        meal_time = parse_dt(get(ts_col))
         if meal_time is None:
             continue
         meals.append({
             "time": meal_time,
             "meal_type": str(get("餐次") or ""),
-            "food": str(get("食物") or ""),
+            "food": str(get(food_col) or ""),
         })
     meals.sort(key=lambda x: x["time"])
     return meals
@@ -143,9 +145,9 @@ def make_increment_curve(cgm_times, cgm_values, meal_time, baseline, grid_min):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--meals", default='./Stelo_CGM_餐食记录模板.xlsx', help="餐食记录 XLSX")
-    parser.add_argument("--cgm", default='./Clarity_Export_Chen_Wei_2026-07-03_145534.csv', help="Clarity CGM CSV")
-    parser.add_argument("--outdir", default="./output", help="输出目录")
+    parser.add_argument("--meals", default=str(DATA_DIR / "Food_track_202606.xlsx"), help=localize("餐食记录 XLSX", "Meal log XLSX"))
+    parser.add_argument("--cgm", default=str(DATA_DIR / "Clarity_Export_Chen_Wei_2026-07-03_145534.csv"), help="Clarity CGM CSV")
+    parser.add_argument("--outdir", default=str(DOWNLOADS_DIR), help=localize("输出目录", "Output directory"))
     args = parser.parse_args()
 
     setup_chinese_font()
@@ -223,9 +225,9 @@ def main():
             })
 
     ax.axhline(0, linewidth=1)
-    ax.set_title(localize("早餐后4小时平均血糖增量曲线：有运动 vs 无运动", "4h avg post-breakfast glucose increase: with vs without exercise"), fontsize=20)
+    ax.set_title(localize("早餐后4小时血糖增量曲线：有运动 vs 无运动", "post-meal glucose increase: with vs without activity"), fontsize=20)
     ax.set_xlabel(localize("餐后时间（小时）", "Time after meal (hours)"), fontsize=20)
-    ax.set_ylabel(localize(f"血糖增量（{UNIT}，相对餐前基线）", f"Glucose increase ({UNIT}, relative to pre-meal baseline)"), fontsize=20)
+    ax.set_ylabel(localize(f"血糖增量（{UNIT}，相对餐前基线）", f"Glucose increase ({UNIT})"), fontsize=20)
     ax.set_xlim(0, 4)
     ax.set_xticks([0, 1, 2, 3, 4])
     ax.grid(alpha=0.3)
