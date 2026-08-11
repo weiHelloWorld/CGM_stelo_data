@@ -30,6 +30,7 @@ def main():
         output_path='/mnt/c/Users/weich/Downloads/glucose_increase_45_55g_carbs.png',
         title=localize('碳水接近血糖曲线就接近吗？',
                        'Does similar carbs mean similar glucose curves? '),
+        hours_after_meal=2.5,
     )
 
     print("\n=== SUMMARY ===")
