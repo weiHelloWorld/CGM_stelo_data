@@ -74,16 +74,12 @@ def setup_cjk_font():
     return FontProperties(family=plt.rcParams['font.sans-serif'][0])
 
 
-def plot_glucose_increase_for_meals(
-    target_meals,
-    food_df,
-    cgm_df,
-    exercise_df,
-    output_path,
-    title='餐后血糖增量',
-    hours_after_meal=4,
-):
-    """Plot meal glucose increase and return a summary table for the target meals."""
+def compute_meal_increment_data(target_meals, cgm_df, hours_after_meal=4):
+    """Compute per-meal post-prandial glucose increment series.
+
+    Returns a list of dicts with keys: meal_time, food, carbs, pre_meal_glucose,
+    pre_meal_time, post_meal_data (with 'hours_since_meal' and 'glucose_increase').
+    """
     meal_data = []
 
     for idx, row in target_meals.iterrows():
@@ -131,6 +127,7 @@ def plot_glucose_increase_for_meals(
             'carbs': meal_carbs,
             'pre_meal_glucose': pre_meal_glucose,
             'pre_meal_time': pre_meal_time,
+            'glucose_col': glucose_col,
             'post_meal_data': post_meal[[
                 'Timestamp', 'hours_since_meal',
                 'glucose_increase', glucose_col
@@ -138,6 +135,22 @@ def plot_glucose_increase_for_meals(
         })
 
     print(localize(f"有效葡萄糖数据餐次数：{len(meal_data)}", f"Valid meals with glucose data: {len(meal_data)}"))
+    return meal_data
+
+
+def plot_glucose_increase_for_meals(
+    target_meals,
+    food_df,
+    cgm_df,
+    exercise_df,
+    output_path,
+    title='餐后血糖增量',
+    hours_after_meal=4,
+    ylim=None,
+):
+    """Plot meal glucose increase and return a summary table for the target meals."""
+    meal_data = compute_meal_increment_data(
+        target_meals, cgm_df, hours_after_meal=hours_after_meal)
 
     if not meal_data:
         print(localize("未生成曲线：没有有效的目标餐次数据", "No curves generated: no valid target meal data"))
@@ -266,6 +279,8 @@ def plot_glucose_increase_for_meals(
     )
     ax.set_xlim(0, hours_after_meal)
     ax.set_xticks(np.arange(0, hours_after_meal + 0.5, 0.5))
+    if ylim is not None:
+        ax.set_ylim(*ylim)
     all_handles, all_labels = ax.get_legend_handles_labels()
     meals_handles = []
     meals_labels = []
@@ -284,9 +299,8 @@ def plot_glucose_increase_for_meals(
             meals_labels,
             loc='upper right',
             bbox_to_anchor=(0.98, 0.98),
-            fontsize=9,
+            fontsize=10,
             framealpha=0.95,
-            title=localize('餐次曲线', 'Meal curves')
         )
         ax.add_artist(leg1)
     if interrupt_handles:
@@ -314,6 +328,7 @@ def plot_glucose_increase_for_meals(
     summary_rows = []
     for meal in meal_data:
         data = meal['post_meal_data']
+        glucose_col = meal['glucose_col']
         window_2h = data[data['hours_since_meal'].between(1.9, 2.1)]
 
         unit_key = UNIT.replace("/", "")

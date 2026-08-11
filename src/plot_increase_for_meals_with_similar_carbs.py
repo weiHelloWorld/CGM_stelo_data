@@ -1,5 +1,5 @@
 import pandas as pd
-from helper import setup_cjk_font, plot_glucose_increase_for_meals, localize
+from helper import setup_cjk_font, plot_glucose_increase_for_meals, compute_meal_increment_data, localize
 
 from config import COMBINED_FOOD_DATA_CSV, EXERCISE_CSV, PROCESSED_CGM_CSV_FILE
 
@@ -22,19 +22,36 @@ def main():
 
     print(localize(f"找到 {len(target_meals)} 个碳水 45-55g 的餐次", f"Found {len(target_meals)} meals with 45-55g carbs"))
 
-    summary_df = plot_glucose_increase_for_meals(
-        target_meals=target_meals,
-        food_df=food_df,
-        cgm_df=cgm_df,
-        exercise_df=exercise_df,
-        output_path='/mnt/c/Users/weich/Downloads/glucose_increase_45_55g_carbs.png',
-        title=localize('碳水接近血糖曲线就接近吗？',
-                       'Does similar carbs mean similar glucose curves? '),
-        hours_after_meal=2.5,
-    )
+    # Compute one shared ylim across ALL target meals so every plot matches.
+    hours_after_meal = 2.5
+    all_meal_data = compute_meal_increment_data(
+        target_meals, cgm_df, hours_after_meal=hours_after_meal)
+    increments = pd.concat([
+        meal['post_meal_data']['glucose_increase'] for meal in all_meal_data
+    ])
+    ymin, ymax = float(increments.min()), float(increments.max())
+    pad = (ymax - ymin) * 0.05 or 1.0
+    ylim = (ymin - pad, ymax + pad)
 
-    print("\n=== SUMMARY ===")
-    print(summary_df.to_string(index=False))
+    # Output cumulative plots: plot k shows the first k meals.
+    n_plots = min(5, len(target_meals))
+    for k in range(1, n_plots + 1):
+        subset = target_meals.head(k)
+        output_path = f'/mnt/c/Users/weich/Downloads/glucose_increase_45_55g_carbs_top{k}.png'
+        summary_df = plot_glucose_increase_for_meals(
+            target_meals=subset,
+            food_df=food_df,
+            cgm_df=cgm_df,
+            exercise_df=exercise_df,
+            output_path=output_path,
+            title=localize('碳水接近血糖曲线就接近吗？',
+                           'Does similar carbs mean similar glucose curves? '),
+            hours_after_meal=hours_after_meal,
+            ylim=ylim,
+        )
+
+        print(f"\n=== SUMMARY (top {k}) ===")
+        print(summary_df.to_string(index=False))
 
 
 if __name__ == "__main__":
