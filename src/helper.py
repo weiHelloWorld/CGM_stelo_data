@@ -329,7 +329,7 @@ def plot_glucose_increase_for_meals(
     for meal in meal_data:
         data = meal['post_meal_data']
         glucose_col = meal['glucose_col']
-        window_2h = data[data['hours_since_meal'].between(1.9, 2.1)]
+        window_all = data[data['hours_since_meal'].between(0, hours_after_meal)]
 
         unit_key = UNIT.replace("/", "")
         summary_rows.append({
@@ -343,10 +343,10 @@ def plot_glucose_increase_for_meals(
             localize('达峰时间_h', 'Time to peak_h'): data.loc[
                 data['glucose_increase'].idxmax(), 'hours_since_meal'
             ],
-            localize(f'2h血糖_{unit_key}', f'2h glucose_{unit_key}'): window_2h[glucose_col].mean()
-                        if len(window_2h) > 0 else np.nan,
-            localize(f'2h增幅_{unit_key}', f'2h increase_{unit_key}'): window_2h['glucose_increase'].mean()
-                              if len(window_2h) > 0 else np.nan,
+            localize(f'{hours_after_meal}h平均血糖_{unit_key}', f'{hours_after_meal}h avg glucose_{unit_key}'): window_all[glucose_col].mean()
+                        if len(window_all) > 0 else np.nan,
+            localize(f'{hours_after_meal}h平均增幅_{unit_key}', f'{hours_after_meal}h avg increase_{unit_key}'): window_all['glucose_increase'].mean()
+                              if len(window_all) > 0 else np.nan,
         })
 
     return pd.DataFrame(summary_rows)

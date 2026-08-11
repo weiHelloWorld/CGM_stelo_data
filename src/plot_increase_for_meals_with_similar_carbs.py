@@ -34,7 +34,7 @@ def main():
     ylim = (ymin - pad, ymax + pad)
 
     # Output cumulative plots: plot k shows the first k meals.
-    n_plots = min(5, len(target_meals))
+    n_plots = len(target_meals)
     for k in range(1, n_plots + 1):
         subset = target_meals.head(k)
         output_path = f'/mnt/c/Users/weich/Downloads/glucose_increase_45_55g_carbs_top{k}.png'
