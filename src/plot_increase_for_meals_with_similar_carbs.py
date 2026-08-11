@@ -53,6 +53,11 @@ def main():
         print(f"\n=== SUMMARY (top {k}) ===")
         print(summary_df.to_string(index=False))
 
+    # Save the last (full) summary to CSV.
+    output_csv = '/mnt/c/Users/weich/Downloads/glucose_increase_45_55g_carbs_summary.csv'
+    summary_df.to_csv(output_csv, index=False)
+    print(localize(f"已保存汇总到 {output_csv}", f"Summary saved to {output_csv}"))
+
 
 if __name__ == "__main__":
     main()

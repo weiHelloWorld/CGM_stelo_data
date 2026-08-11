@@ -336,6 +336,9 @@ def plot_glucose_increase_for_meals(
             localize('日期', 'Date'): meal['meal_time'].strftime('%Y-%m-%d'),
             localize('时间', 'Time'): meal['meal_time'].strftime('%H:%M'),
             localize('餐名', 'Meal'): meal['food'],
+            localize('简称', 'Short name'): summarize_food_name(
+                convert_meal_name_language(meal['food'])
+            ),
             localize('碳水_g', 'Carbs_g'): meal['carbs'],
             localize(f'餐前血糖_{unit_key}', f'Pre-meal glucose_{unit_key}'): meal['pre_meal_glucose'],
             localize(f'峰值血糖_{unit_key}', f'Peak glucose_{unit_key}'): data[glucose_col].max(),
