@@ -54,6 +54,7 @@ def plot_glucose_increase_for_meals(
     exercise_df,
     output_path,
     title='餐后血糖增量',
+    hours_after_meal=4,
 ):
     """Plot meal glucose increase and return a summary table for the target meals."""
     meal_data = []
@@ -79,10 +80,10 @@ def plot_glucose_increase_for_meals(
         pre_meal_glucose = pre_meal.iloc[-1][glucose_col]
         pre_meal_time = pre_meal.iloc[-1]['Timestamp']
 
-        # --- Find post-meal glucose: readings within 0-4 hours after meal ---
+        # --- Find post-meal glucose: readings within the window after the meal ---
         post_meal = cgm_df[
             (cgm_df['Timestamp'] > meal_time) &
-            (cgm_df['Timestamp'] <= meal_time + pd.Timedelta(hours=4))
+            (cgm_df['Timestamp'] <= meal_time + pd.Timedelta(hours=hours_after_meal))
         ].copy()
 
         if len(post_meal) == 0:
@@ -147,14 +148,14 @@ def plot_glucose_increase_for_meals(
             interruption_candidates.extend(
                 exercise_df.loc[
                     (exercise_df['Timestamp'] > meal_time) &
-                    (exercise_df['Timestamp'] <= meal_time + pd.Timedelta(hours=4)),
+                    (exercise_df['Timestamp'] <= meal_time + pd.Timedelta(hours=hours_after_meal)),
                     'Timestamp'
                 ].tolist()
             )
         interruption_candidates.extend(
             food_df.loc[
                 (food_df['Meal_Timestamp'] > meal_time) &
-                (food_df['Meal_Timestamp'] <= meal_time + pd.Timedelta(hours=4)),
+                (food_df['Meal_Timestamp'] <= meal_time + pd.Timedelta(hours=hours_after_meal)),
                 'Meal_Timestamp'
             ].tolist()
         )
@@ -236,8 +237,8 @@ def plot_glucose_increase_for_meals(
         title,
         fontsize=20
     )
-    ax.set_xlim(0, 4)
-    ax.set_xticks(np.arange(0, 4.5, 0.5))
+    ax.set_xlim(0, hours_after_meal)
+    ax.set_xticks(np.arange(0, hours_after_meal + 0.5, 0.5))
     all_handles, all_labels = ax.get_legend_handles_labels()
     meals_handles = []
     meals_labels = []
