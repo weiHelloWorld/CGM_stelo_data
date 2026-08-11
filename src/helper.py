@@ -63,13 +63,20 @@ def plot_glucose_increase_for_meals(
         meal_food = row['Food']
         meal_carbs = row['carbs']
 
+        # --- Choose glucose column based on the configured UNIT ---
+        # 'Glucose_Value' is already in the configured unit (see
+        # plot_selected_meal_increment_curves_v2.process_cgm_for_plot).
+        glucose_col = 'Glucose_Value' if 'Glucose_Value' in cgm_df.columns else (
+            'Glucose Value (mg/dL)' if UNIT == 'mg/dL' else 'Glucose_mmol_L'
+        )
+
         # --- Find pre-meal glucose: last CGM reading at or before meal time ---
         pre_meal = cgm_df[cgm_df['Timestamp'] <= meal_time]
         if len(pre_meal) == 0:
             print(localize(f"跳过：{meal_time} 无餐前葡萄糖数据", f"Skipping: {meal_time} no pre-meal glucose data"))
             continue
 
-        pre_meal_glucose = pre_meal.iloc[-1]['Glucose_Value'] if 'Glucose_Value' in pre_meal.columns else pre_meal.iloc[-1]['Glucose_mmol_L']
+        pre_meal_glucose = pre_meal.iloc[-1][glucose_col]
         pre_meal_time = pre_meal.iloc[-1]['Timestamp']
 
         # --- Find post-meal glucose: readings within 0-4 hours after meal ---
@@ -86,7 +93,6 @@ def plot_glucose_increase_for_meals(
         post_meal['hours_since_meal'] = (
             (post_meal['Timestamp'] - meal_time).dt.total_seconds() / 3600
         )
-        glucose_col = 'Glucose_Value' if 'Glucose_Value' in post_meal.columns else 'Glucose_mmol_L'
         post_meal['glucose_increase'] = (
             post_meal[glucose_col] - pre_meal_glucose
         )
