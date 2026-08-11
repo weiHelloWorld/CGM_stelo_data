@@ -13,6 +13,33 @@ from config import UNIT, TEXT_LANGUAGE
 from English_to_Chinese_map import convert_meal_name_language
 
 
+# Quantity/detail tokens stripped from food names to keep legend labels compact
+# (e.g. "200g tofu, 250 mL 2% milk" -> "tofu, 2% milk").
+_AMOUNT_PATTERNS = [
+    re.compile(r'\d+(?:\.\d+)?\s*(?:g|克|kg|千克|mg|毫克|ml|毫升|oz|lb|lbs?|grams?|pounds?)\b', re.I),
+    re.compile(r'\d+\s*/\s*\d+\s*(?:cup|杯|包|粉包|servings?|份)?', re.I),
+    re.compile(r'\bHalf\s+cup(?: of)?\b', re.I),
+    re.compile(r'半(?:份|只|杯|碗|盒|瓶|包)?'),
+    re.compile(r'\b\d+(?![%％])\s*'),
+]
+
+
+def summarize_food_name(name):
+    """Strip quantity/detail tokens (e.g. '150g', '1/2 cup') from a food name."""
+    if not name:
+        return ''
+    text = str(name)
+    for pattern in _AMOUNT_PATTERNS:
+        text = pattern.sub(' ', text)
+    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'\s*[、,，]\s*', ', ', text)
+    text = re.sub(r'\s*\+\s*', ' + ', text)
+    text = re.sub(r'^(?:of |, |\+ |\s)+', '', text)
+    text = re.sub(r'(?:, |\+ |\s)+$', '', text)
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+
 def localize(zh_text, en_text):
     """Return text in the configured language."""
     from config import TEXT_LANGUAGE as _LANG
@@ -133,7 +160,7 @@ def plot_glucose_increase_for_meals(
         meal_time = meal['meal_time']
 
         food_name_display = convert_meal_name_language(meal['food'])
-        short_food = food_name_display[:100] + '...' if len(food_name_display) > 100 else food_name_display
+        short_food = summarize_food_name(food_name_display)
 
         carbs_value = meal['carbs']
         if pd.isna(carbs_value):
