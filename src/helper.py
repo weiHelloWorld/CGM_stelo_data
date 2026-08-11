@@ -53,7 +53,7 @@ def plot_glucose_increase_for_meals(
     cgm_df,
     exercise_df,
     output_path,
-    title='碳水接近血糖曲线就接近吗？餐后血糖增量',
+    title='餐后血糖增量',
 ):
     """Plot meal glucose increase and return a summary table for the target meals."""
     meal_data = []

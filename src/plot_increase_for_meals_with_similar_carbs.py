@@ -28,6 +28,8 @@ def main():
         cgm_df=cgm_df,
         exercise_df=exercise_df,
         output_path='/mnt/c/Users/weich/Downloads/glucose_increase_45_55g_carbs.png',
+        title=localize('碳水接近血糖曲线就接近吗？',
+                       'Does similar carbs mean similar glucose curves? '),
     )
 
     print("\n=== SUMMARY ===")
