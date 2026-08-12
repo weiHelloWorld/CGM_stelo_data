@@ -123,10 +123,12 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
         ).dt.total_seconds() / 60
 
         starting_glucose = float(plot_glucose.iloc[0]["glucose"])
-        max_decrease = float(starting_glucose - plot_glucose["glucose"].min())
+        lowest_glucose = float(plot_glucose["glucose"].min())
+        max_decrease = float(starting_glucose - lowest_glucose)
         metrics.append({
             "exercise_type": exercise_type,
             "starting_glucose": starting_glucose,
+            "lowest_glucose": lowest_glucose,
             "max_decrease": max(0.0, max_decrease),
             "date": session_start,
         })
@@ -230,14 +232,64 @@ if __name__ == "__main__":
 
         scatter_ax.grid(True, alpha=0.2)
 
+    low_fig, low_axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+    low_fig.suptitle(localize(
+        "最低血糖与起始血糖的相关性",
+        "Correlation between lowest_glucose and starting_glucose",
+    ))
+
+    for low_ax, exercise_type in zip(low_axes, exercise_types):
+        subset_metrics = [m for m in all_metrics if m["exercise_type"] == exercise_type]
+        if subset_metrics:
+            starting_glucose = [m["starting_glucose"] for m in subset_metrics]
+            lowest_glucose = [m["lowest_glucose"] for m in subset_metrics]
+            low_ax.scatter(
+                starting_glucose,
+                lowest_glucose,
+                alpha=0.7,
+                s=45,
+                color="C0" if exercise_type == "swim" else "C1",
+            )
+            low_ax.set_xlabel(localize(
+                f"起始血糖 ({UNIT})",
+                f"starting_glucose ({UNIT})",
+            ))
+            low_ax.set_ylabel(localize(
+                f"最低血糖 ({UNIT})",
+                f"lowest_glucose ({UNIT})",
+            ))
+
+            corr = pd.Series(starting_glucose).corr(pd.Series(lowest_glucose))
+            corr_stat, p_value = pearsonr(starting_glucose, lowest_glucose)
+            low_ax.set_title(
+                f"{EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)}\n"
+                f"{localize('相关系数', 'corr')} = {corr_stat:.2f}, "
+                f"p = {p_value:.3g}"
+            )
+        else:
+            low_ax.text(
+                0.5,
+                0.5,
+                f"没有 {EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)} 的数据",
+                ha="center",
+                va="center",
+                fontsize=12,
+            )
+            low_ax.set_axis_off()
+
+        low_ax.grid(True, alpha=0.2)
+
     output_dir = DOWNLOADS_DIR
     os.makedirs(output_dir, exist_ok=True)
 
     fig_path = os.path.join(output_dir, "exercise_glucose_overview.png")
     scatter_path = os.path.join(output_dir, "exercise_correlation_scatter.png")
+    low_path = os.path.join(output_dir, "exercise_lowest_vs_starting_scatter.png")
 
     fig.savefig(fig_path, dpi=300, bbox_inches="tight")
     scatter_fig.tight_layout(rect=[0, 0, 1, 0.96])
     scatter_fig.savefig(scatter_path, dpi=300, bbox_inches="tight")
+    low_fig.tight_layout(rect=[0, 0, 1, 0.96])
+    low_fig.savefig(low_path, dpi=300, bbox_inches="tight")
 
 
