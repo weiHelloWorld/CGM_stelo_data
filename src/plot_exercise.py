@@ -182,7 +182,10 @@ if __name__ == "__main__":
         all_metrics.extend(metrics)
 
     scatter_fig, scatter_axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
-    scatter_fig.suptitle("Correlation between max_decrease and starting_glucose")
+    scatter_fig.suptitle(localize(
+        "最大降幅与起始血糖的相关性",
+        "Correlation between max_decrease and starting_glucose",
+    ))
 
     for scatter_ax, exercise_type in zip(scatter_axes, exercise_types):
         subset_metrics = [m for m in all_metrics if m["exercise_type"] == exercise_type]
@@ -197,8 +200,8 @@ if __name__ == "__main__":
                 s=45,
                 color="C0" if exercise_type == "swim" else "C1",
             )
-            scatter_ax.set_xlabel("starting_glucose")
-            scatter_ax.set_ylabel("max_decrease")
+            scatter_ax.set_xlabel(localize("起始血糖", "starting_glucose"))
+            scatter_ax.set_ylabel(localize("最大降幅", "max_decrease"))
 
             for x, y, date_value in zip(starting_glucose, max_decrease, dates):
                 scatter_ax.annotate(
@@ -214,7 +217,8 @@ if __name__ == "__main__":
             corr_stat, p_value = pearsonr(starting_glucose, max_decrease)
             scatter_ax.set_title(
                 f"{EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)}\n"
-                f"corr = {corr_stat:.2f}, p = {p_value:.3g}"
+                f"{localize('相关系数', 'corr')} = {corr_stat:.2f}, "
+                f"p = {p_value:.3g}"
             )
         else:
             scatter_ax.text(
