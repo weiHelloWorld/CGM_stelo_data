@@ -200,8 +200,14 @@ if __name__ == "__main__":
                 s=45,
                 color="C0" if exercise_type == "swim" else "C1",
             )
-            scatter_ax.set_xlabel(localize("起始血糖", "starting_glucose"))
-            scatter_ax.set_ylabel(localize("最大降幅", "max_decrease"))
+            scatter_ax.set_xlabel(localize(
+                f"起始血糖 ({UNIT})",
+                f"starting_glucose ({UNIT})",
+            ))
+            scatter_ax.set_ylabel(localize(
+                f"最大降幅 ({UNIT})",
+                f"max_decrease ({UNIT})",
+            ))
 
             for x, y, date_value in zip(starting_glucose, max_decrease, dates):
                 scatter_ax.annotate(

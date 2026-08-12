@@ -11,8 +11,9 @@ PROCESSED_CGM_CSV_FILE = str(DATA_DIR / "processed_cgm_glucose_data.csv")
 EXERCISE_CSV = str(DATA_DIR / "exercise.csv")
 
 MG_DL_TO_MMOL_L = 1 / 18.0182
-UNIT = "mg/dL"
-TEXT_LANGUAGE = "en"  # "en" or "zh"
+# UNIT = "mg/dL"
+UNIT = "mmol/L"
+TEXT_LANGUAGE = "zh"  # "en" or "zh"
 PERIOD_LIST = [
     ("2026-06-16", "2026-07-02"),
     ("2026-07-07", "2026-07-23"),
