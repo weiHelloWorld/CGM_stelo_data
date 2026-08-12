@@ -151,7 +151,7 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
     ax.set_xlabel(localize("运动开始后分钟数", "Minutes after exercise start"))
     ax.set_ylabel(localize(f"血糖 ({UNIT})", f"Glucose ({UNIT})"))
     subtitle = EXERCISE_TYPE_LABELS.get(exercise_type, exercise_type)
-    ax.set_title(localize(f"运动后 0–{window_hours} 小时的血糖变化 ({subtitle})", f"Glucose change 0–{window_hours}h after exercise ({subtitle})"))
+    ax.set_title(localize(f"运动后 0–{window_hours} 小时的血糖变化 (30 分钟{subtitle})", f"Glucose change 0–{window_hours}h after exercise ({subtitle})"))
     ax.grid(True, alpha=0.25)
     return metrics
 
@@ -194,7 +194,6 @@ if __name__ == "__main__":
         if subset_metrics:
             starting_glucose = [m["starting_glucose"] for m in subset_metrics]
             max_decrease = [m["max_decrease"] for m in subset_metrics]
-            dates = [m["date"] for m in subset_metrics]
             scatter_ax.scatter(
                 starting_glucose,
                 max_decrease,
@@ -210,16 +209,6 @@ if __name__ == "__main__":
                 f"最大降幅 ({UNIT})",
                 f"max_decrease ({UNIT})",
             ))
-
-            for x, y, date_value in zip(starting_glucose, max_decrease, dates):
-                scatter_ax.annotate(
-                    date_value.strftime("%Y-%m-%d"),
-                    (x, y),
-                    xytext=(4, 4),
-                    textcoords="offset points",
-                    fontsize=8,
-                    alpha=0.8,
-                )
 
             corr = pd.Series(starting_glucose).corr(pd.Series(max_decrease))
             corr_stat, p_value = pearsonr(starting_glucose, max_decrease)
