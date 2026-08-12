@@ -140,9 +140,11 @@ def plot_exercise_on_ax(ax, sessions, glucose, food_times, exercise_type, window
         )
 
     ax.axvline(
-        0,
-        linestyle="--",
-        linewidth=1
+        30,
+        linestyle=":",
+        linewidth=1.2,
+        color="C3",
+        # label=localize("运动结束 (30 分钟)", "Exercise end (30 min)"),
     )
 
     ax.set_xlim(0, window_hours * 60)
